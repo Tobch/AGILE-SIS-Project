@@ -1,12 +1,11 @@
 ## Sprint 1 — Goal: skeleton desktop app + core modules + EAV DB foundation
 
-### 1. Setup project repo, CI, Jira board (2 SP) — **Priority: Highest**
+### 1. Setup project repo, Jira board (2 SP) — **Priority: Highest**
 
-**Description:** Create Git repository structure, Github remote, CI pipeline (Maven/Gradle build + unit test), create Jira project with sprints and issue types.
+**Description:** Create Git repository structure, Github remote, create Jira project with sprints and issue types.
 **Acceptance criteria:**
 
 * Repo created with `main` and `develop` branches.
-* CI builds pass on push and PR.
 * Jira project created and Sprint 1 board populated with initial tickets.
   **Subtasks:**
 * Create repo `AGILE SIS Project` (or chosen name).
