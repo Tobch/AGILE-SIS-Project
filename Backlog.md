@@ -2,11 +2,10 @@
 
 ### 1. Setup project repo, CI, Jira board (2 SP) — **Priority: Highest**
 
-**Description:** Create Git repository structure, Github remote, CI pipeline (Maven/Gradle build + unit test), create Jira project with sprints and issue types.
+**Description:** Create Git repository structure, Github remote, create Jira project with sprints and issue types.
 **Acceptance criteria:**
 
 * Repo created with `main` and `develop` branches.
-* CI builds pass on push and PR.
 * Jira project created and Sprint 1 board populated with initial tickets.
   **Subtasks:**
 * Create repo `AGILE SIS Project` (or chosen name).
@@ -59,8 +58,6 @@
 * Create attribute metadata collection + UI to add attributes (admin).
 * Implement server-side validation (or client-side checks).
 * Write migration script to create initial attributes.
-
-(See DB and EAV section below for full rules & examples.)
 
 ---
 
