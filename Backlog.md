@@ -1,6 +1,6 @@
 ## Sprint 1 — Goal: skeleton desktop app + core modules + EAV DB foundation
 
-### 1. Setup project repo, Jira board (2 SP) — **Priority: Highest**
+### 1. Setup project repo, CI, Jira board (2 SP) — **Priority: Highest**
 
 **Description:** Create Git repository structure, Github remote, create Jira project with sprints and issue types.
 **Acceptance criteria:**
@@ -58,8 +58,6 @@
 * Create attribute metadata collection + UI to add attributes (admin).
 * Implement server-side validation (or client-side checks).
 * Write migration script to create initial attributes.
-
-(See DB and EAV section below for full rules & examples.)
 
 ---
 
@@ -146,17 +144,8 @@
 **Description:** Unit tests, integration tests, and QA plan for Sprint 1 features.
 **Acceptance criteria:**
 
-* Tests added and CI passes.
+* Tests added.
 * QA checklist completed with signoff.
-
----
-
-### 12. Buffer & change-request spike (2 SP) — **Priority: High**
-
-**Description:** Reserve capacity for at least one change request or a spike to investigate an unknown integration.
-**Acceptance criteria:**
-
-* Spike results documented; change request ticket created if needed.
 
 ---
 
