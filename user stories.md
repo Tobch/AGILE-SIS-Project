@@ -6,7 +6,7 @@
 **Issue Type:** Story
 **Priority:** Highest
 **Story Points:** 2
-**Description:** As an Admin I want to create the Git repo, CI pipeline, and Jira project so that the team has a shared codebase, automated builds, and a backlog to track work.
+**Description:** As an Admin I want to create the Git repo,and Jira project so that the team has a shared codebase, automated builds, and a backlog to track work.
 **Acceptance Criteria:**
 
 * Repo created on chosen host with `main` and `develop` branches.
@@ -143,7 +143,7 @@
 **Issue Type:** Story
 **Priority:** High
 **Story Points:** 5
-**Description:** As a Student/Registrar I want to create and edit student basic profiles (core fields: ID, name, email, enrollment date) so that student records are digitized and retrievable.
+**Description:** As a Student/Registrar/Admin I want to create and edit student basic profiles (core fields: ID, name, email, enrollment date) so that student records are digitized and retrievable.
 **Acceptance Criteria:**
 
 * Create/Read/Update/Delete student profiles implemented.
@@ -304,25 +304,6 @@
 * Add unit tests for core modules.
 * Add integration tests using TestContainers or local test DB.
 * Complete QA checklist & report.
-
----
-
-### Ticket S1-017
-
-**Title:** Reserve sprint capacity for change requests/spikes & document migration plan
-**Issue Type:** Story
-**Priority:** High
-**Story Points:** 2
-**Description:** As a Product Owner I want to reserve sprint capacity for change requests/spikes and document migration plans so that we can accommodate discovered changes with minimal disruption.
-**Acceptance Criteria:**
-
-* 10-15% velocity reserved for change buffer.
-* Spike tickets created for known unknowns.
-* Migration plan template added to repo.
-  **Subtasks:**
-* Create buffer ticket & link to sprint.
-* Add migration template to `/db/migrations`.
-* Create initial spike tickets.
 
 ---
 
@@ -781,5 +762,4 @@
 * Implement metadata fetch & cache.
 * Implement unified validation module.
 * Add tests for metadata-driven validation.
-
 ---
