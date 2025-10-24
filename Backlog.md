@@ -281,8 +281,6 @@
 
 # Non-Functional Requirements (NRF)
 
-Include these as global backlog items that apply across sprints (create Jira epic "NRF" and add these as tasks):
-
 1. **Security**
 
    * Password hashing (bcrypt); role-based authorization.
