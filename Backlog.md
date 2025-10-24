@@ -144,17 +144,8 @@
 **Description:** Unit tests, integration tests, and QA plan for Sprint 1 features.
 **Acceptance criteria:**
 
-* Tests added and CI passes.
+* Tests added.
 * QA checklist completed with signoff.
-
----
-
-### 12. Buffer & change-request spike (2 SP) — **Priority: High**
-
-**Description:** Reserve capacity for at least one change request or a spike to investigate an unknown integration.
-**Acceptance criteria:**
-
-* Spike results documented; change request ticket created if needed.
 
 ---
 
