@@ -44,6 +44,15 @@
 * Password hashing (bcrypt).
 * Seed initial admin account.
 
+
+Tabbash tasks:
+Folder Dao(EntityDAO.java,UserDAO.java,AttributeMetaDAO.java)
+Folder model (EntityModel.java,User.java)
+Folder secuirty (AuthSession.java,PermissionService.java,Security.java)
+Folder Service (EntityService.java,UserService.java)
+Folder UI (LoginController.java,MainController.java)
+
+App.java main code to run the application
 ---
 
 ### 4. MongoDB EAV foundation + schema validation (6 SP) — **Priority: Highest**
@@ -74,6 +83,12 @@
 * Reservation logic + conflict detection.
 * Calendar/day view (simple list for MVP).
 
+Kareem yonuis Tasks:
+Folder Dao (ReservationDAO.java)
+Folder model (Reservation.java)
+Folder service (ReservationService.java)
+Folder UI (ReservationsController.java, update MainController.java)
+
 ---
 
 ### 6. Administrative Office Automation — Student records CRUD (MVP) (5 SP) — **Priority: High**
@@ -87,6 +102,10 @@
 * Student entity UI + backend storage.
 * Transcript data model (embedded in student or separate collection).
 
+
+Paula tasks:
+Folder UI (StudentsController.java,StudentDetailDialog.java,update MainController.java)
+
 ---
 
 ### 7. Staff Module — Directory (4 SP) — **Priority: Medium**
@@ -99,6 +118,11 @@
   **Subtasks:**
 * Staff entity and UI.
 * Assign staff to course endpoint.
+
+Yaman tasks: 
+Folder DAO (StaffDAO.java)
+Folder Services (StaffService.java)
+Folder UI (StaffController.java,update MainController.java)
 
 ---
 
