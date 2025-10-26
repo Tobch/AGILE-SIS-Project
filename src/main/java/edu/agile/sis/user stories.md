@@ -558,44 +558,6 @@
 
 ### Ticket S2-014
 
-**Title:** Deprecation workflow for attributes and data migration triggers
-**Issue Type:** Story
-**Priority:** Medium
-**Story Points:** 2
-**Description:** As an Admin I want to mark attributes as deprecated and trigger data migration workflows so that we can evolve the data model without breaking clients.
-**Acceptance Criteria:**
-
-* `attributes.deprecated` field supported and used by admin UI.
-* When attribute deprecated, migration ticket template auto-generated.
-* UI shows deprecation warnings when attribute is used.
-  **Subtasks:**
-* Add deprecated flag to attribute metadata.
-* Show warnings in attribute editor.
-* Add migration ticket template.
-
----
-
-### Ticket S2-015
-
-**Title:** Scheduled backups & restore documentation
-**Issue Type:** Story
-**Priority:** High
-**Story Points:** 2
-**Description:** As a System I want to perform scheduled backups and document restore steps so that we can recover from failures and data loss.
-**Acceptance Criteria:**
-
-* Backup command documented (`mongodump` example).
-* Restore steps documented and tested.
-* Schedule recommendation added to ops docs.
-  **Subtasks:**
-* Add `/db/backup-restore.md`.
-* Test backup & restore on sample DB.
-* Add recommended backup schedule.
-
----
-
-### Ticket S2-016
-
 **Title:** Final QA acceptance and user guides
 **Issue Type:** Story
 **Priority:** High
@@ -613,45 +575,7 @@
 
 ---
 
-### Ticket S2-017
-
-**Title:** Performance indexing & selective denormalization plan
-**Issue Type:** Story
-**Priority:** Medium
-**Story Points:** 3
-**Description:** As a Developer I want to add performance-oriented indexes and denormalize frequently queried attributes when necessary so that the app meets performance goals for common queries.
-**Acceptance Criteria:**
-
-* Index list reviewed and additional indexes created where necessary.
-* At least one attribute denormalized into `core` for performance.
-* Performance test results documented.
-  **Subtasks:**
-* Profile common queries.
-* Create indexes and denormalize selected attribute.
-* Run performance smoke tests.
-
----
-
-### Ticket S2-018
-
-**Title:** Feature flags to toggle incomplete features off
-**Issue Type:** Story
-**Priority:** Medium
-**Story Points:** 2
-**Description:** As an Admin I want to toggle incomplete features off (feature flags) so that we can deploy incremental work safely and enable features later without additional deployments.
-**Acceptance Criteria:**
-
-* Simple feature flag mechanism implemented (config file or DB toggles).
-* Flags respected by UI to show/hide features.
-* Admin UI to toggle flags for the environment.
-  **Subtasks:**
-* Implement feature flag config store.
-* Add admin UI to toggle flags.
-* Use flags in one example feature.
-
----
-
-### Ticket S2-019
+### Ticket S2-015
 
 **Title:** Change request workflow documented in Jira for post-release changes
 **Issue Type:** Story
