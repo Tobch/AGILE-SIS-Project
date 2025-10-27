@@ -39,18 +39,18 @@ public class MainController {
         // --- Event Handlers ---
         
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
-        /* 
-        myProfileBtn.setOnAction(e -> view.setCenter(new StudentsController(true).getView()));
-        studentsBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
-        reservationsBtn.setOnAction(e -> view.setCenter(new ReservationsController().getView()));
+        
+        //myProfileBtn.setOnAction(e -> view.setCenter(new StudentsController(true).getView()));
+       // studentsBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
+       // reservationsBtn.setOnAction(e -> view.setCenter(new ReservationsController().getView()));
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
-        coursesBtn.setOnAction(e -> view.setCenter(new CoursesController().getView()));
-        assignmentsBtn.setOnAction(e -> view.setCenter(new AssignmentsController().getView()));
-        quizzesBtn.setOnAction(e -> view.setCenter(new QuizzesController().getView()));
-        messagesBtn.setOnAction(e -> view.setCenter(new MessagesController().getView()));
-        eavBtn.setOnAction(e -> view.setCenter(new EavAdminController().getView()));
+       // coursesBtn.setOnAction(e -> view.setCenter(new CoursesController().getView()));
+       // assignmentsBtn.setOnAction(e -> view.setCenter(new AssignmentsController().getView()));
+       // quizzesBtn.setOnAction(e -> view.setCenter(new QuizzesController().getView()));
+       // messagesBtn.setOnAction(e -> view.setCenter(new MessagesController().getView()));
+        //eavBtn.setOnAction(e -> view.setCenter(new EavAdminController().getView()));
 
-        */
+        
 
         logoutBtn.setOnAction(e -> {
             AuthSession.getInstance().clear();
