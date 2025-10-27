@@ -1,6 +1,6 @@
 package edu.agile.sis.service;
 
-import edu.agile.sis.dao.CourseDAO;
+//import edu.agile.sis.dao.CourseDAO;
 import edu.agile.sis.dao.StaffDAO;
 import org.bson.Document;
 
@@ -8,7 +8,7 @@ import java.util.List;
 
 public class StaffService {
     private final StaffDAO dao = new StaffDAO();
-    private final CourseDAO courseDAO = new CourseDAO();
+    //private final CourseDAO courseDAO = new CourseDAO();
 
     public void createStaff(Document staff) {
         dao.insertStaff(staff);
@@ -37,6 +37,9 @@ public class StaffService {
     /**
      * Assign staff to a course (simple assignment: push staffId into course.assignedStaff array)
      */
+    /*
+     * 
+     
     public boolean assignToCourse(String courseCode, String staffId) {
         Document course = courseDAO.findByCode(courseCode);
         if (course == null) return false;
@@ -51,4 +54,5 @@ public class StaffService {
                 new Document("assignedStaff", assigned));
         return true;
     }
+        */
 }
