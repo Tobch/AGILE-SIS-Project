@@ -21,20 +21,24 @@ public class MainController {
         brand.setPadding(new Insets(0, 0, 20, 0));
 
         sidebar.getChildren().add(brand);
+        
+     
 
         // Sidebar buttons with icons
-        Button myProfileBtn     = createMenuButton("👤", "My Profile");
-        Button studentsBtn      = createMenuButton("🎓", "Manage Students");
-        Button reservationsBtn  = createMenuButton("📅", "Room Reservations");
+        //Button myProfileBtn     = createMenuButton("👤", "My Profile");
+        //Button studentsBtn      = createMenuButton("🎓", "Manage Students");
+       // Button reservationsBtn  = createMenuButton("📅", "Room Reservations");
         Button staffBtn         = createMenuButton("👥", "Manage Staff");
-        Button coursesBtn       = createMenuButton("📚", "Courses");
-        Button assignmentsBtn   = createMenuButton("📝", "Assignments");
-        Button quizzesBtn       = createMenuButton("❓", "Quizzes");
-        Button messagesBtn      = createMenuButton("💬", "Messages");
-        Button eavBtn           = createMenuButton("⚙️", "EAV Admin");
+        //Button coursesBtn       = createMenuButton("📚", "Courses");
+        //Button assignmentsBtn   = createMenuButton("📝", "Assignments");
+        //Button quizzesBtn       = createMenuButton("❓", "Quizzes");
+        //Button messagesBtn      = createMenuButton("💬", "Messages");
+        //Button eavBtn           = createMenuButton("⚙️", "EAV Admin");
         Button logoutBtn        = createMenuButton("🚪", "Logout");
 
         // --- Event Handlers ---
+        
+        staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
         /* 
         myProfileBtn.setOnAction(e -> view.setCenter(new StudentsController(true).getView()));
         studentsBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
@@ -54,8 +58,7 @@ public class MainController {
             view.getScene().setRoot(loginController.getView());
         });
 
-        /* 
-        // --- Role-based menu ---
+        
         boolean isAdmin = AuthSession.getInstance().hasRole("Admin");
         boolean isProf  = AuthSession.getInstance().hasRole("Professor");
         boolean isTA    = AuthSession.getInstance().hasRole("TA");
@@ -63,17 +66,17 @@ public class MainController {
         boolean isStudent = AuthSession.getInstance().hasRole("Student");
 
         if (isAdmin) {
-            sidebar.getChildren().addAll(studentsBtn, staffBtn, coursesBtn, assignmentsBtn, quizzesBtn, reservationsBtn, messagesBtn, eavBtn);
+            sidebar.getChildren().addAll(staffBtn);
         } else if (isProf || isTA || isStaffGeneric) {
-            sidebar.getChildren().addAll(coursesBtn, assignmentsBtn, quizzesBtn, reservationsBtn, messagesBtn);
+            sidebar.getChildren().addAll();
         } else if (isStudent) {
-            sidebar.getChildren().addAll(myProfileBtn, coursesBtn, assignmentsBtn, quizzesBtn, messagesBtn);
+            sidebar.getChildren().addAll();
         } else {
-            sidebar.getChildren().addAll(coursesBtn, assignmentsBtn, quizzesBtn);
+            sidebar.getChildren().addAll();
         }
 
         sidebar.getChildren().add(logoutBtn);
-        */
+ 
         // --- Header Bar ---
         HBox header = new HBox();
         header.setStyle("-fx-background-color: #ecf0f1; -fx-border-color: #ddd;");
