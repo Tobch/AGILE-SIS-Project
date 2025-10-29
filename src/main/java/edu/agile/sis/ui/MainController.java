@@ -25,8 +25,8 @@ public class MainController {
      
 
         // Sidebar buttons with icons
-        //Button myProfileBtn     = createMenuButton("👤", "My Profile");
-        //Button studentsBtn      = createMenuButton("🎓", "Manage Students");
+       Button myProfileBtn     = createMenuButton("👤", "My Profile");
+       Button studentsBtn      = createMenuButton("🎓", "Manage Students");
        // Button reservationsBtn  = createMenuButton("📅", "Room Reservations");
         Button staffBtn         = createMenuButton("👥", "Manage Staff");
         //Button coursesBtn       = createMenuButton("📚", "Courses");
@@ -40,8 +40,8 @@ public class MainController {
         
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
         
-        //myProfileBtn.setOnAction(e -> view.setCenter(new StudentsController(true).getView()));
-       // studentsBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
+        myProfileBtn.setOnAction(e -> view.setCenter(new StudentsController(true).getView()));
+        studentsBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
        // reservationsBtn.setOnAction(e -> view.setCenter(new ReservationsController().getView()));
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
        // coursesBtn.setOnAction(e -> view.setCenter(new CoursesController().getView()));
@@ -66,11 +66,11 @@ public class MainController {
         boolean isStudent = AuthSession.getInstance().hasRole("Student");
 
         if (isAdmin) {
-            sidebar.getChildren().addAll(staffBtn);
+            sidebar.getChildren().addAll(studentsBtn, staffBtn);
         } else if (isProf || isTA || isStaffGeneric) {
             sidebar.getChildren().addAll();
         } else if (isStudent) {
-            sidebar.getChildren().addAll();
+            sidebar.getChildren().addAll(myProfileBtn);
         } else {
             sidebar.getChildren().addAll();
         }
