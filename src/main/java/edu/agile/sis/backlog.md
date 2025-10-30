@@ -1,6 +1,6 @@
 ## Sprint 1 — Goal: skeleton desktop app + core modules + EAV DB foundation
 
-### 1. Setup project repo, CI, Jira board (2 SP) — **Priority: Highest**
+### 1. Setup project repo, Jira board (2 SP) — **Priority: Highest**
 
 **Description:** Create Git repository structure, Github remote, create Jira project with sprints and issue types.
 **Acceptance criteria:**
@@ -10,8 +10,7 @@
   **Subtasks:**
 * Create repo `AGILE SIS Project` (or chosen name).
 * Add README, license, CONTRIBUTING.
-* Setup GitFlow or trunk-based branching policy.
-* Add CI config (GitHub Actions or Jenkins).
+* Setup branching policy.
 * Create corresponding Jira project and import backlog tickets.
 
 ---
@@ -23,7 +22,6 @@
 
 * App launches, shows login screen and main dashboard stub.
 * Settings dialog allows configuring MongoDB URI, test connection button works.
-* Unit tests for config reading.
   **Subtasks:**
 * Initialize JavaFX app with Maven/Gradle.
 * Implement settings UI and persistence.
@@ -58,7 +56,6 @@
   **Subtasks:**
 * Create attribute metadata collection + UI to add attributes (admin).
 * Implement server-side validation (or client-side checks).
-* Write migration script to create initial attributes.
 
 ---
 
