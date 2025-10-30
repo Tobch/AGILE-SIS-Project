@@ -13,8 +13,7 @@ memmber Ahmed Tabbash did the basic foundation which is :
   **Subtasks:**
 * Create repo `AGILE SIS Project` (or chosen name).
 * Add README, license, CONTRIBUTING.
-* Setup GitFlow or trunk-based branching policy.
-* Add CI config (GitHub Actions or Jenkins).
+* Setup branching policy.
 * Create corresponding Jira project and import backlog tickets.
 
 ---
@@ -46,3 +45,17 @@ memmber Ahmed Tabbash did the basic foundation which is :
 * Auth UI + role middleware.
 * Password hashing (bcrypt).
 * Seed initial admin account.
+
+
+### 4. MongoDB EAV foundation + schema validation (6 SP) — **Priority: Highest**
+
+**Description:** Implement EAV model baseline collections, attribute metadata, JSON Schema validators for collections, and migration scripts. (Detailed DB design below.)
+**Acceptance criteria:**
+
+* Collections created: `entities`, `attributes`, `attribute_values` (or hybrid approach).
+* Attribute metadata allows type/constraints; validator enforces metadata where possible.
+* Example entity (student) with EAV attributes stored and retrievable.
+  **Subtasks:**
+* Create attribute metadata collection + UI to add attributes (admin).
+* Implement server-side validation (or client-side checks).
+* Write migration script to create initial attributes.
