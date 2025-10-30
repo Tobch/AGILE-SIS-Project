@@ -2,7 +2,7 @@
 
 ### Ticket S1-001
 
-**Title:** Setup Git repository, CI pipeline and Jira project
+**Title:** Setup Git repository,Jira project
 **Issue Type:** Story
 **Priority:** Highest
 **Story Points:** 2
@@ -10,12 +10,10 @@
 **Acceptance Criteria:**
 
 * Repo created on chosen host with `main` and `develop` branches.
-* CI configured (GitHub Actions / Jenkins) to run build & unit tests on PR.
 * Jira project and Sprint 1 created with initial backlog epics.
   **Subtasks:**
 * Create repo and push initial skeleton.
 * Add README, LICENSE, CONTRIBUTING.
-* Configure CI workflow for build & test.
 * Create Jira project, epics, and Sprint 1 board.
 
 ---
