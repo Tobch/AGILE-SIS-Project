@@ -25,9 +25,9 @@ public class MainController {
      
 
         // Sidebar buttons with icons
-       Button myProfileBtn     = createMenuButton("👤", "My Profile");
-       Button studentsBtn      = createMenuButton("🎓", "Manage Students");
-       // Button reservationsBtn  = createMenuButton("📅", "Room Reservations");
+        Button myProfileBtn     = createMenuButton("👤", "My Profile");
+        Button studentsBtn      = createMenuButton("🎓", "Manage Students");
+        Button reservationsBtn  = createMenuButton("📅", "Room Reservations");
         Button staffBtn         = createMenuButton("👥", "Manage Staff");
         //Button coursesBtn       = createMenuButton("📚", "Courses");
         //Button assignmentsBtn   = createMenuButton("📝", "Assignments");
@@ -42,7 +42,7 @@ public class MainController {
         
         myProfileBtn.setOnAction(e -> view.setCenter(new StudentsController(true).getView()));
         studentsBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
-       // reservationsBtn.setOnAction(e -> view.setCenter(new ReservationsController().getView()));
+       reservationsBtn.setOnAction(e -> view.setCenter(new ReservationsController().getView()));
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
        // coursesBtn.setOnAction(e -> view.setCenter(new CoursesController().getView()));
        // assignmentsBtn.setOnAction(e -> view.setCenter(new AssignmentsController().getView()));
@@ -66,9 +66,9 @@ public class MainController {
         boolean isStudent = AuthSession.getInstance().hasRole("Student");
 
         if (isAdmin) {
-            sidebar.getChildren().addAll(studentsBtn, staffBtn);
+            sidebar.getChildren().addAll(studentsBtn, staffBtn, reservationsBtn);
         } else if (isProf || isTA || isStaffGeneric) {
-            sidebar.getChildren().addAll();
+            sidebar.getChildren().addAll(reservationsBtn);
         } else if (isStudent) {
             sidebar.getChildren().addAll(myProfileBtn);
         } else {
