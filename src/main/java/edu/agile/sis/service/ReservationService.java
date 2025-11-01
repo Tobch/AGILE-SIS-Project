@@ -90,25 +90,28 @@ public class ReservationService {
      * Admin-only: Approve a pending reservation -> set status = "confirmed"
      * Returns true if updated.
      */
-    public boolean approveReservation(String reservationId) {
-        if (!AuthSession.getInstance().hasRole("Admin")) {
-            throw new SecurityException("Only Admin may approve reservations");
-        }
-        Document upd = new Document("status", "confirmed").append("updatedAt", new Date());
-        UpdateResult res = reservationDAO.updateReservation(reservationId, new Document("$set", upd));
-        return res.getModifiedCount() > 0;
+   public boolean approveReservation(String reservationId) {
+    if (!AuthSession.getInstance().hasRole("Admin")) {
+        throw new SecurityException("Only Admin may approve reservations");
     }
 
-    /**
-     * Admin-only: Reject a pending reservation -> set status = "rejected"
-     * Returns true if updated.
-     */
-    public boolean rejectReservation(String reservationId) {
-        if (!AuthSession.getInstance().hasRole("Admin")) {
-            throw new SecurityException("Only Admin may reject reservations");
-        }
-        Document upd = new Document("status", "rejected").append("updatedAt", new Date());
-        UpdateResult res = reservationDAO.updateReservation(reservationId, new Document("$set", upd));
-        return res.getModifiedCount() > 0;
+    Document upd = new Document("status", "confirmed")
+            .append("updatedAt", new Date());
+
+    UpdateResult res = reservationDAO.updateReservation(reservationId, upd); // ✅ remove "$set" here
+    return res.getModifiedCount() > 0;
+}
+
+public boolean rejectReservation(String reservationId) {
+    if (!AuthSession.getInstance().hasRole("Admin")) {
+        throw new SecurityException("Only Admin may reject reservations");
     }
+
+    Document upd = new Document("status", "rejected")
+            .append("updatedAt", new Date());
+
+    UpdateResult res = reservationDAO.updateReservation(reservationId, upd); // ✅ remove "$set" here
+    return res.getModifiedCount() > 0;
+}
+
 }

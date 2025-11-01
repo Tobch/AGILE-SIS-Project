@@ -29,7 +29,7 @@ public class MainController {
         Button studentsBtn      = createMenuButton("🎓", "Manage Students");
         Button reservationsBtn  = createMenuButton("📅", "Room Reservations");
         Button staffBtn         = createMenuButton("👥", "Manage Staff");
-        //Button coursesBtn       = createMenuButton("📚", "Courses");
+        Button coursesBtn       = createMenuButton("📚", "Courses");
         //Button assignmentsBtn   = createMenuButton("📝", "Assignments");
         //Button quizzesBtn       = createMenuButton("❓", "Quizzes");
         //Button messagesBtn      = createMenuButton("💬", "Messages");
@@ -44,7 +44,7 @@ public class MainController {
         studentsBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
        reservationsBtn.setOnAction(e -> view.setCenter(new ReservationsController().getView()));
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
-       // coursesBtn.setOnAction(e -> view.setCenter(new CoursesController().getView()));
+        coursesBtn.setOnAction(e -> view.setCenter(new CoursesController().getView()));
        // assignmentsBtn.setOnAction(e -> view.setCenter(new AssignmentsController().getView()));
        // quizzesBtn.setOnAction(e -> view.setCenter(new QuizzesController().getView()));
        // messagesBtn.setOnAction(e -> view.setCenter(new MessagesController().getView()));
@@ -66,13 +66,13 @@ public class MainController {
         boolean isStudent = AuthSession.getInstance().hasRole("Student");
 
         if (isAdmin) {
-            sidebar.getChildren().addAll(studentsBtn, staffBtn, reservationsBtn);
+            sidebar.getChildren().addAll(studentsBtn, staffBtn,coursesBtn ,reservationsBtn);
         } else if (isProf || isTA || isStaffGeneric) {
-            sidebar.getChildren().addAll(reservationsBtn);
+            sidebar.getChildren().addAll(reservationsBtn ,coursesBtn );
         } else if (isStudent) {
-            sidebar.getChildren().addAll(myProfileBtn);
+            sidebar.getChildren().addAll(myProfileBtn, coursesBtn);
         } else {
-            sidebar.getChildren().addAll();
+            sidebar.getChildren().addAll( myProfileBtn,coursesBtn);
         }
 
         sidebar.getChildren().add(logoutBtn);
