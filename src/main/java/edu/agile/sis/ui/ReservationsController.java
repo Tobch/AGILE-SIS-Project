@@ -209,45 +209,78 @@ public class ReservationsController {
             });
         });
         deleteBtn.setDisable(!canModify);
+// Admin only approve / reject
+Button approveBtn = new Button("Approve");
+approveBtn.setOnAction(e -> {
+    Document sel = table.getSelectionModel().getSelectedItem();
+    if (sel == null) {
+        System.out.println("[Approve] No selection");
+        return;
+    }
+    String id = getIdString(sel);
+    System.out.println("[Approve] clicked for id = " + id + " (doc: " + sel + ")");
+    try {
+        boolean ok = reservationService.approveReservation(id);
+        System.out.println("[Approve] service returned: " + ok);
+        if (ok) {
+            // ensure UI updates on FX thread
+            javafx.application.Platform.runLater(() -> {
+                new Alert(Alert.AlertType.INFORMATION, "Reservation approved.").showAndWait();
+                loadReservations();
+            });
+        } else {
+            javafx.application.Platform.runLater(() ->
+                new Alert(Alert.AlertType.ERROR, "Approve failed. (no rows modified)").showAndWait()
+            );
+        }
+    } catch (SecurityException ex) {
+        javafx.application.Platform.runLater(() ->
+            new Alert(Alert.AlertType.ERROR, "Permission denied: " + ex.getMessage()).showAndWait()
+        );
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        javafx.application.Platform.runLater(() ->
+            new Alert(Alert.AlertType.ERROR, "Approve failed: " + ex.getMessage()).showAndWait()
+        );
+    }
+});
+approveBtn.setDisable(!canModify);
 
-        // Admin only approve / reject
-        Button approveBtn = new Button("Approve");
-        approveBtn.setOnAction(e -> {
-            Document sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) return;
-            String id = getIdString(sel);
-            try {
-                boolean ok = reservationService.approveReservation(id);
-                if (ok) {
-                    new Alert(Alert.AlertType.INFORMATION, "Reservation approved.").showAndWait();
-                    loadReservations();
-                } else {
-                    new Alert(Alert.AlertType.ERROR, "Approve failed.").showAndWait();
-                }
-            } catch (SecurityException ex) {
-                new Alert(Alert.AlertType.ERROR, "Permission denied: " + ex.getMessage()).showAndWait();
-            }
-        });
-        approveBtn.setDisable(!canModify);
+Button rejectBtn = new Button("Reject");
+rejectBtn.setOnAction(e -> {
+    Document sel = table.getSelectionModel().getSelectedItem();
+    if (sel == null) {
+        System.out.println("[Reject] No selection");
+        return;
+    }
+    String id = getIdString(sel);
+    System.out.println("[Reject] clicked for id = " + id + " (doc: " + sel + ")");
+    try {
+        boolean ok = reservationService.rejectReservation(id);
+        System.out.println("[Reject] service returned: " + ok);
+        if (ok) {
+            javafx.application.Platform.runLater(() -> {
+                new Alert(Alert.AlertType.INFORMATION, "Reservation rejected.").showAndWait();
+                loadReservations();
+            });
+        } else {
+            javafx.application.Platform.runLater(() ->
+                new Alert(Alert.AlertType.ERROR, "Reject failed. (no rows modified)").showAndWait()
+            );
+        }
+    } catch (SecurityException ex) {
+        javafx.application.Platform.runLater(() ->
+            new Alert(Alert.AlertType.ERROR, "Permission denied: " + ex.getMessage()).showAndWait()
+        );
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        javafx.application.Platform.runLater(() ->
+            new Alert(Alert.AlertType.ERROR, "Reject failed: " + ex.getMessage()).showAndWait()
+        );
+    }
+});
+rejectBtn.setDisable(!canModify);
 
-        Button rejectBtn = new Button("Reject");
-        rejectBtn.setOnAction(e -> {
-            Document sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) return;
-            String id = getIdString(sel);
-            try {
-                boolean ok = reservationService.rejectReservation(id);
-                if (ok) {
-                    new Alert(Alert.AlertType.INFORMATION, "Reservation rejected.").showAndWait();
-                    loadReservations();
-                } else {
-                    new Alert(Alert.AlertType.ERROR, "Reject failed.").showAndWait();
-                }
-            } catch (SecurityException ex) {
-                new Alert(Alert.AlertType.ERROR, "Permission denied: " + ex.getMessage()).showAndWait();
-            }
-        });
-        rejectBtn.setDisable(!canModify);
 
         Button refreshBtn = new Button("Refresh");
         refreshBtn.setOnAction(e -> loadReservations());
