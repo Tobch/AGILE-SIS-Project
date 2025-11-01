@@ -15,7 +15,7 @@ public class UserDAO {
     public UserDAO() {
         this.users = DBConnection.getInstance().getDatabase().getCollection("users");
 
-        // ✅ Ensure unique index on linkedEntityId (prevents duplicates)
+        // Ensure unique index on linkedEntityId (prevents duplicates)
         try {
             users.createIndex(new Document("linkedEntityId", 1), new IndexOptions().unique(true));
         } catch (Exception ignored) {
