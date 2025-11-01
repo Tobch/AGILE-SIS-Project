@@ -5,16 +5,19 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
+import javafx.scene.text.Text;
 import org.bson.Document;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-/**
- * StudentDetailDialog - polished UI for student details
- */
+
 public class StudentDetailDialog extends Dialog<ButtonType> {
     private final Document studentDoc;
     private final EntityService entityService;
@@ -35,7 +38,7 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
         this.entityService = entityService;
         this.readOnly = readOnly;
 
-        setTitle("Student Details");
+        setTitle("🎓 Student Profile");
         getDialogPane().getButtonTypes().addAll(ButtonType.CANCEL, ButtonType.OK);
 
         if (readOnly) {
@@ -46,23 +49,47 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
         buildContent();
         populateFromDocument();
 
-        // handle OK (save)
         Button okBtn = (Button) getDialogPane().lookupButton(ButtonType.OK);
         if (okBtn != null) {
             okBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
-                if (!validateAndSave()) {
-                    ev.consume();
-                }
+                if (!validateAndSave()) ev.consume();
             });
         }
     }
 
     private void buildContent() {
-        // --- Profile Info Section ---
-        GridPane profileGrid = new GridPane();
-        profileGrid.setHgap(12);
-        profileGrid.setVgap(12);
-        profileGrid.setPadding(new Insets(10));
+      
+        VBox sidebar = new VBox();
+        sidebar.setPrefWidth(180);
+        sidebar.setAlignment(Pos.CENTER);
+        sidebar.setStyle("-fx-background-color: linear-gradient(to bottom right, #1976d2, #1565c0);");
+
+        Label nameLabel = new Label("Student");
+        nameLabel.setFont(Font.font("Segoe UI", FontWeight.BOLD, 20));
+        nameLabel.setTextFill(Color.WHITE);
+
+        Label roleLabel = new Label("Profile Details");
+        roleLabel.setTextFill(Color.rgb(230, 230, 230));
+
+        sidebar.getChildren().addAll(nameLabel, roleLabel);
+        VBox.setMargin(nameLabel, new Insets(20, 0, 5, 0));
+        VBox.setMargin(roleLabel, new Insets(0, 0, 15, 0));
+
+        // --- Info Card (Right Side) ---
+        GridPane grid = new GridPane();
+        grid.setHgap(15);
+        grid.setVgap(15);
+        grid.setPadding(new Insets(20));
+
+        Label idLabel = new Label("Entity ID:");
+        Label fnLabel = new Label("First Name:");
+        Label lnLabel = new Label("Last Name:");
+        Label emLabel = new Label("Email:");
+        Label enLabel = new Label("Enrolled Since:");
+
+        for (Label lbl : List.of(idLabel, fnLabel, lnLabel, emLabel, enLabel)) {
+            lbl.setFont(Font.font("Segoe UI", FontWeight.SEMI_BOLD, 13));
+        }
 
         entityIdField.setDisable(true);
         firstNameField.setDisable(readOnly);
@@ -70,60 +97,97 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
         emailField.setDisable(readOnly);
         enrolledSincePicker.setDisable(readOnly);
 
-        profileGrid.add(new Label("Entity ID:"), 0, 0);
-        profileGrid.add(entityIdField, 1, 0);
-        profileGrid.add(new Label("First Name:"), 0, 1);
-        profileGrid.add(firstNameField, 1, 1);
-        profileGrid.add(new Label("Last Name:"), 0, 2);
-        profileGrid.add(lastNameField, 1, 2);
-        profileGrid.add(new Label("Email:"), 0, 3);
-        profileGrid.add(emailField, 1, 3);
-        profileGrid.add(new Label("Enrolled Since:"), 0, 4);
-        profileGrid.add(enrolledSincePicker, 1, 4);
+        grid.add(idLabel, 0, 0); grid.add(entityIdField, 1, 0);
+        grid.add(fnLabel, 0, 1); grid.add(firstNameField, 1, 1);
+        grid.add(lnLabel, 0, 2); grid.add(lastNameField, 1, 2);
+        grid.add(emLabel, 0, 3); grid.add(emailField, 1, 3);
+        grid.add(enLabel, 0, 4); grid.add(enrolledSincePicker, 1, 4);
 
-        TitledPane profilePane = new TitledPane("Profile Information", profileGrid);
-        profilePane.setCollapsible(false);
+        VBox infoCard = new VBox(15, grid);
+        infoCard.setPadding(new Insets(20));
+        infoCard.setStyle("""
+            -fx-background-color: white;
+            -fx-border-color: #ddd;
+            -fx-border-radius: 8;
+            -fx-background-radius: 8;
+            -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 5, 0, 0, 1);
+        """);
 
-        // --- Attributes Section ---
-        attributesListView.setPrefHeight(180);
-        attributesListView.setMouseTransparent(readOnly);
-        attributesListView.setFocusTraversable(!readOnly);
 
-        Button addAttrBtn = new Button("➕ Add");
-        Button editAttrBtn = new Button("✏️ Edit");
-        Button delAttrBtn = new Button("🗑 Delete");
+        attributesListView.setPrefHeight(140);
+        attributesListView.setStyle("""
+            -fx-background-color: #fafafa;
+            -fx-border-color: #ddd;
+            -fx-border-radius: 6;
+            -fx-background-radius: 6;
+        """);
 
-        addAttrBtn.setDisable(readOnly);
-        editAttrBtn.setDisable(readOnly);
-        delAttrBtn.setDisable(readOnly);
+        Button addBtn = new Button("Add");
+        Button editBtn = new Button("Edit");
+        Button delBtn = new Button("Delete");
 
-        addAttrBtn.setOnAction(e -> addAttribute());
-        editAttrBtn.setOnAction(e -> editSelectedAttribute());
-        delAttrBtn.setOnAction(e -> deleteSelectedAttribute());
+        stylePrimaryButton(addBtn);
+        styleSecondaryButton(editBtn);
+        styleDangerButton(delBtn);
 
-        HBox attrBtns = new HBox(10, addAttrBtn, editAttrBtn, delAttrBtn);
+        addBtn.setDisable(readOnly);
+        editBtn.setDisable(readOnly);
+        delBtn.setDisable(readOnly);
+
+        addBtn.setOnAction(e -> addAttribute());
+        editBtn.setOnAction(e -> editSelectedAttribute());
+        delBtn.setOnAction(e -> deleteSelectedAttribute());
+
+        HBox attrBtns = new HBox(10, addBtn, editBtn, delBtn);
         attrBtns.setAlignment(Pos.CENTER_RIGHT);
-        attrBtns.setPadding(new Insets(6));
 
-        VBox attrBox = new VBox(8,
+        VBox attrSection = new VBox(10,
                 new Label("Custom Attributes (Key → Value)"),
                 attributesListView,
                 attrBtns
         );
-        attrBox.setPadding(new Insets(10));
-        attrBox.setStyle("-fx-background-color: #fdfdfd; -fx-border-color: #ddd; -fx-border-radius: 6; -fx-background-radius: 6;");
 
-        TitledPane attrPane = new TitledPane("Attributes", attrBox);
-        attrPane.setCollapsible(false);
+        attrSection.setPadding(new Insets(10));
 
-        // --- Layout Root ---
-        VBox root = new VBox(15, profilePane, attrPane);
-        root.setPadding(new Insets(15));
-        root.setStyle("-fx-background-color: #fafafa;");
+        VBox content = new VBox(20, infoCard, attrSection);
+        content.setPadding(new Insets(20, 30, 20, 30));
+        content.setAlignment(Pos.TOP_CENTER);
+
+     
+        HBox root = new HBox(sidebar, content);
+        root.setStyle("-fx-background-color: #f7f9fc;");
+        HBox.setHgrow(content, Priority.ALWAYS);
 
         getDialogPane().setContent(root);
+        getDialogPane().setPrefWidth(700);
     }
 
+    private void stylePrimaryButton(Button b) {
+        b.setStyle("""
+            -fx-background-color: #1976d2;
+            -fx-text-fill: white;
+            -fx-font-weight: bold;
+            -fx-background-radius: 6;
+        """);
+    }
+
+    private void styleSecondaryButton(Button b) {
+        b.setStyle("""
+            -fx-background-color: #eeeeee;
+            -fx-text-fill: #333;
+            -fx-background-radius: 6;
+        """);
+    }
+
+    private void styleDangerButton(Button b) {
+        b.setStyle("""
+            -fx-background-color: #e53935;
+            -fx-text-fill: white;
+            -fx-background-radius: 6;
+        """);
+    }
+
+    
     private void populateFromDocument() {
         if (studentDoc == null) return;
         Document core = studentDoc.get("core", Document.class);
@@ -137,11 +201,9 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
                 enrolledSincePicker.setValue(new java.sql.Date(enrolled.getTime()).toLocalDate());
             }
         }
-
         List<Document> attrs = studentDoc.getList("attributes", Document.class, new ArrayList<>());
         attributes.clear();
         if (attrs != null) attributes.addAll(attrs);
-
         refreshAttrListView();
     }
 
@@ -150,9 +212,7 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
         for (Document a : attributes) {
             String key = a.getString("key");
             Object value = a.get("value");
-            String display = (value instanceof List)
-                    ? key + " → " + ((List<?>) value)
-                    : key + " → " + (value == null ? "" : value.toString());
+            String display = key + " → " + (value == null ? "" : value.toString());
             attributesListView.getItems().add(display);
         }
     }
@@ -187,7 +247,7 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
     private boolean validateAndSave() {
         String eid = entityIdField.getText();
         if (eid == null || eid.isBlank()) {
-            showAlert("Entity ID missing");
+            showAlert("Entity ID is missing!");
             return false;
         }
 
@@ -206,7 +266,7 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
         new Alert(Alert.AlertType.WARNING, msg).showAndWait();
     }
 
-    // Attribute editor inner dialog (same as before, just styled nicer)
+    // --- Inner Dialog for Attributes ---
     private static class AttributeEditorDialog extends Dialog<Document> {
         private final TextField keyField = new TextField();
         private final TextField valueField = new TextField();
@@ -219,7 +279,7 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
             GridPane g = new GridPane();
             g.setHgap(12);
             g.setVgap(12);
-            g.setPadding(new Insets(12));
+            g.setPadding(new Insets(15));
 
             g.add(new Label("Key:"), 0, 0);
             g.add(keyField, 1, 0);
@@ -231,8 +291,7 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
             if (existing != null) {
                 keyField.setText(existing.getString("key"));
                 Object v = existing.get("value");
-                if (v instanceof List<?> list) valueField.setText(String.join(",", list.stream().map(Object::toString).toList()));
-                else valueField.setText(v == null ? "" : v.toString());
+                valueField.setText(v == null ? "" : v.toString());
                 versionField.setText(String.valueOf(existing.getInteger("version", 1)));
             }
 
@@ -245,7 +304,8 @@ public class StudentDetailDialog extends Dialog<ButtonType> {
 
                     String rawVal = valueField.getText().trim();
                     Object val = rawVal.contains(",")
-                            ? Arrays.stream(rawVal.split("\\s*,\\s*")).filter(s -> !s.isBlank()).toList()
+                            ? Arrays.stream(rawVal.split("\\s*,\\s*"))
+                            .filter(s -> !s.isBlank()).toList()
                             : rawVal;
 
                     int ver = 1;

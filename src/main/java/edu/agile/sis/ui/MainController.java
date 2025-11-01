@@ -40,7 +40,8 @@ public class MainController {
         
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
         
-        myProfileBtn.setOnAction(e -> view.setCenter(new StudentsController(true).getView()));
+        myProfileBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
+
         studentsBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
        reservationsBtn.setOnAction(e -> view.setCenter(new ReservationsController().getView()));
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));

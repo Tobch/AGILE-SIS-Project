@@ -18,4 +18,22 @@ public class UserService {
         userDAO.insertUser(username, hashed, roles, linkedEntityId);
         return true;
     }
+    
+    
+    public boolean deleteUserByLinkedEntityId(String linkedEntityId) {
+    if (linkedEntityId == null || linkedEntityId.isBlank()) return false;
+    return userDAO.deleteByLinkedEntityId(linkedEntityId);
+}
+    
+    
+     public boolean updateUserByLinkedEntityId(String linkedEntityId, String newUsername, List<String> newRoles) {
+        if (linkedEntityId == null || linkedEntityId.isBlank()) return false;
+        try {
+            return userDAO.updateUserByLinkedEntityId(linkedEntityId, newUsername, newRoles);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
 }
