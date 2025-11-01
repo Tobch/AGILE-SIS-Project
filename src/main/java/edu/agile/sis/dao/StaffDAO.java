@@ -51,4 +51,13 @@ public class StaffDAO {
             staffColl.deleteOne(Filters.eq("_id", id));
         }
     }
+    public boolean deleteByStaffId(String staffId) {
+    var result = staffColl.deleteOne(Filters.eq("staffId", staffId));
+    return result.getDeletedCount() > 0;
+    }
+
+
+    
+    
+    
 }

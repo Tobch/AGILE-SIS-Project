@@ -6,10 +6,12 @@ import edu.agile.sis.service.EnrollmentService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import org.bson.Document;
 
 import java.util.List;
@@ -17,7 +19,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class CoursesController {
-    private final VBox view = new VBox(10);
+    private final VBox view = new VBox(20);
     private final CourseService courseService = new CourseService();
     private final EnrollmentService enrollmentService = new EnrollmentService();
 
@@ -27,233 +29,218 @@ public class CoursesController {
     private final boolean isStaff = isProf || isTA || AuthSession.getInstance().hasRole("Staff");
     private final boolean isStudent = AuthSession.getInstance().hasRole("Student");
 
-    // lists
     private final ObservableList<Document> courseItems = FXCollections.observableArrayList();
     private final ObservableList<Document> myCourses = FXCollections.observableArrayList();
 
     public CoursesController() {
-        view.setPadding(new Insets(10));
-        Label title = new Label("📚 Course Catalog");
-         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 8 0 8 0;");
+        // Base view style
+        view.setPadding(new Insets(25));
+        view.setStyle("-fx-background-color: linear-gradient(to bottom right, #f8f9fa, #e9ecef);");
+        view.setSpacing(20);
 
+        // === Header ===
+        Label title = new Label(isStudent ? "🎓 Course Catalog" : "📘 Course Management");
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
+        title.setTextFill(Color.web("#343a40"));
+
+        Label subtitle = new Label(isStudent
+                ? "Register or view your enrolled courses below"
+                : (isAdmin
+                    ? "Manage all courses, staff assignments, and enrollments"
+                    : "View and edit your assigned courses"));
+        subtitle.setFont(Font.font("Segoe UI", 14));
+        subtitle.setTextFill(Color.web("#6c757d"));
+
+        VBox headerBox = new VBox(5, title, subtitle);
+
+        // === Unified card container ===
+        VBox card = new VBox(15);
+        card.setPadding(new Insets(20));
+        card.setBackground(new Background(new BackgroundFill(Color.WHITE, new CornerRadii(10), Insets.EMPTY)));
+        card.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 10, 0, 0, 3);");
 
         if (isStudent) {
-            // Student view: show "My Courses" and "All Courses (Register)"
+            // Student: Tabs
             TabPane tabs = new TabPane();
-            Tab myTab = new Tab("My Courses");
-            Tab allTab = new Tab("All Courses");
+            tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-            // my courses table
             TableView<Document> myTable = createCourseTable();
             myTable.setItems(myCourses);
+            Button unregisterBtn = styledButton("❌ Unregister Selected", "#dc3545");
+            unregisterBtn.setOnAction(e -> handleUnregister(myTable));
+            VBox myBox = new VBox(10, myTable, unregisterBtn);
+            myBox.setPadding(new Insets(8));
 
-           Button unregisterBtn = new Button("Unregister Selected");
-           unregisterBtn.setPrefWidth(160);
-           unregisterBtn.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;");
-
-            unregisterBtn.setOnAction(e -> {
-                Document sel = myTable.getSelectionModel().getSelectedItem();
-                if (sel == null) return;
-                String code = sel.getString("code");
-                String linked = AuthSession.getInstance().getLinkedEntityId();
-                boolean ok = enrollmentService.unregisterStudentFromCourse(linked, code);
-                if (ok) {
-                    loadMyCourses();
-                    new Alert(Alert.AlertType.INFORMATION, "Unregistered from " + code).showAndWait();
-                } else {
-                    new Alert(Alert.AlertType.WARNING, "You are not registered for " + code).showAndWait();
-                }
-            });
-
-            VBox myBox = new VBox(8, myTable, unregisterBtn);
-            myBox.setPadding(new Insets(6));
-            myTab.setContent(myBox);
-
-            // all courses table + register button
             TableView<Document> allTable = createCourseTable();
             allTable.setItems(courseItems);
-            
-            Button registerBtn = new Button("Register Selected");
-            registerBtn.setPrefWidth(160);
-            registerBtn.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 6;");
-            
-            
-            registerBtn.setOnAction(e -> {
-                Document sel = allTable.getSelectionModel().getSelectedItem();
-                if (sel == null) {
-                    new Alert(Alert.AlertType.INFORMATION, "Select a course to register.").showAndWait();
-                    return;
-                }
-                String code = sel.getString("code");
-                String linked = AuthSession.getInstance().getLinkedEntityId();
-                if (linked == null || linked.isBlank()) {
-                    new Alert(Alert.AlertType.WARNING, "Your account is not linked to a student record.").showAndWait();
-                    return;
-                }
-                try {
-                    boolean ok = enrollmentService.registerStudentToCourse(linked, code);
-                    if (ok) {
-                        loadMyCourses();
-                        new Alert(Alert.AlertType.INFORMATION, "Registered for " + code).showAndWait();
-                    } else {
-                        // the service should throw exceptions for known failures; this is a fallback
-                        new Alert(Alert.AlertType.WARNING, "Could not register for " + code).showAndWait();
-                    }
-                } catch (IllegalStateException ise) {
-                    // business rule (GPA limit, already registered, etc.)
-                    new Alert(Alert.AlertType.WARNING, ise.getMessage()).showAndWait();
-                } catch (IllegalArgumentException iae) {
-                    new Alert(Alert.AlertType.WARNING, iae.getMessage()).showAndWait();
-                } catch (SecurityException se) {
-                    new Alert(Alert.AlertType.ERROR, "Permission denied: " + se.getMessage()).showAndWait();
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    new Alert(Alert.AlertType.ERROR, "Error while registering: " + ex.getMessage()).showAndWait();
-                }
-            });
+            Button registerBtn = styledButton("✅ Register Selected", "#28a745");
+            registerBtn.setOnAction(e -> handleRegister(allTable));
+            VBox allBox = new VBox(10, allTable, registerBtn);
+            allBox.setPadding(new Insets(8));
 
-
-            VBox allBox = new VBox(8, allTable, registerBtn);
-            allBox.setPadding(new Insets(6));
-            allTab.setContent(allBox);
+            Tab myTab = new Tab("📘 My Courses", myBox);
+            Tab allTab = new Tab("📚 All Courses", allBox);
 
             tabs.getTabs().addAll(myTab, allTab);
-            view.getChildren().addAll(title, tabs);
+            card.getChildren().add(tabs);
         } else {
-            // Admin / Staff / Prof view (single table)
+            // Admin / Staff / Professor: Table + Controls
             TableView<Document> table = createCourseTable();
             table.setItems(courseItems);
 
-            Button add = new Button("Add Course");
-            Button edit = new Button("View / Edit");
-            Button del = new Button("Delete");
-            Button assign = new Button("Assign Staff");
-            Button refresh = new Button("Refresh");
+            Button add = styledButton("➕ Add Course", "#28a745");
+            Button edit = styledButton("✏️ Edit/View", "#007bff");
+            Button del = styledButton("🗑 Delete", "#dc3545");
+            Button assign = styledButton("👨‍🏫 Assign Staff", "#ffc107");
+            Button refresh = styledButton("🔄 Refresh", "#17a2b8");
 
-            add.setDisable(!(isAdmin ));
-            del.setDisable(!(isAdmin ));
+            add.setDisable(!isAdmin);
+            del.setDisable(!isAdmin);
             edit.setDisable(!(isAdmin || isProf));
-            assign.setDisable(!isAdmin); // only admin assigns staff
+            assign.setDisable(!isAdmin);
 
             add.setOnAction(e -> addCourse());
-            refresh.setOnAction(e -> loadCourses());
-
             edit.setOnAction(e -> {
                 Document sel = table.getSelectionModel().getSelectedItem();
-                if (sel == null) { new Alert(Alert.AlertType.INFORMATION, "Select a course").showAndWait(); return; }
+                if (sel == null) { alert(Alert.AlertType.INFORMATION, "Select a course first."); return; }
                 viewEditCourse(sel);
             });
+            del.setOnAction(e -> handleDelete(table));
+            assign.setOnAction(e -> handleAssign(table));
+            refresh.setOnAction(e -> loadCourses());
 
-            del.setOnAction(e -> {
-                Document sel = table.getSelectionModel().getSelectedItem();
-                if (sel == null) return;
-                try {
-                    courseService.delete(sel.getObjectId("_id").toHexString());
-                    loadCourses();
-                } catch (SecurityException ex) {
-                    new Alert(Alert.AlertType.ERROR, "Permission denied: " + ex.getMessage()).showAndWait();
-                }
-            });
+            HBox controls = new HBox(10, add, edit, del, assign, refresh);
+            controls.setAlignment(Pos.CENTER_LEFT);
+            controls.setPadding(new Insets(5, 0, 0, 0));
 
-            assign.setOnAction(e -> {
-                Document sel = table.getSelectionModel().getSelectedItem();
-                if (sel == null) { new Alert(Alert.AlertType.INFORMATION, "Select a course"); return; }
-                TextInputDialog dlg = new TextInputDialog();
-                dlg.setHeaderText("Enter staffId to assign (e.g., P1001)");
-                dlg.showAndWait().ifPresent(staffId -> {
-                    try {
-                        boolean ok = courseService.assignStaffToCourse(sel.getString("code"), staffId.trim());
-                        if (ok) { loadCourses(); new Alert(Alert.AlertType.INFORMATION, "Assigned " + staffId + " to " + sel.getString("code")).showAndWait(); }
-                        else new Alert(Alert.AlertType.ERROR, "Course not found").showAndWait();
-                    } catch (SecurityException ex) {
-                        new Alert(Alert.AlertType.ERROR, "Permission denied: " + ex.getMessage()).showAndWait();
-                    }
-                });
-            });
-
-            HBox ctrl = new HBox(8, add, edit, del, assign, refresh);
-            ctrl.setPadding(new Insets(6));
-            view.getChildren().addAll(title, table, ctrl);
+            card.getChildren().addAll(table, controls);
         }
+
+        view.getChildren().addAll(headerBox, card);
 
         loadCourses();
         if (isStudent) loadMyCourses();
     }
 
+    // === Styling helpers ===
+    private Button styledButton(String text, String color) {
+        Button btn = new Button(text);
+        btn.setStyle(String.format("""
+            -fx-background-color: %s;
+            -fx-text-fill: white;
+            -fx-font-weight: bold;
+            -fx-background-radius: 6;
+            -fx-padding: 6 14 6 14;
+            -fx-cursor: hand;
+        """, color));
+        return btn;
+    }
+
     private TableView<Document> createCourseTable() {
         TableView<Document> table = new TableView<>();
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setStyle("-fx-background-color: white; -fx-border-radius: 8; -fx-background-radius: 8;");
+        table.setPlaceholder(new Label("No courses available."));
+
         TableColumn<Document, String> code = new TableColumn<>("Code");
         code.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("code")));
-        code.setPrefWidth(100);
 
         TableColumn<Document, String> title = new TableColumn<>("Title");
         title.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("title")));
-        title.setPrefWidth(280);
 
         TableColumn<Document, String> credits = new TableColumn<>("Credits");
         credits.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(String.valueOf(c.getValue().get("credits"))));
-        credits.setPrefWidth(80);
 
         TableColumn<Document, String> type = new TableColumn<>("Type");
-        type.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getBoolean("core", false) ? "Core" : "Elective"));
-        type.setPrefWidth(100);
+        type.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(
+                c.getValue().getBoolean("core", false) ? "Core" : "Elective"));
 
         TableColumn<Document, String> assigned = new TableColumn<>("Assigned Staff");
         assigned.setCellValueFactory(c -> {
-        Object o = c.getValue().get("assignedStaff");
-        String s = "";
-        if (o instanceof List) s = String.join(", ", ((List<?>) o).stream().map(Object::toString).collect(Collectors.toList()));
-        return new javafx.beans.property.SimpleStringProperty(s);
-    });
-
-        assigned.setPrefWidth(200);
+            Object a = c.getValue().get("assignedStaff");
+            if (a instanceof List)
+                return new javafx.beans.property.SimpleStringProperty(
+                        String.join(", ", ((List<?>) a).stream().map(Object::toString).collect(Collectors.toList())));
+            return new javafx.beans.property.SimpleStringProperty("");
+        });
 
         table.getColumns().addAll(code, title, credits, type, assigned);
         return table;
     }
 
-    /**
-     * Load courses into courseItems ObservableList.
-     * - Admin/Professor: load all courses.
-     * - Staff (Professor/TA/Staff) but NOT Admin/Professor: load only courses where assignedStaff contains their linkedEntityId.
-     * - Student: load all courses (handled elsewhere).
-     */
-            private void loadCourses() {
-            courseItems.clear();
-            List<Document> all = courseService.listAll();
-            if (all == null) return;
+    private void alert(Alert.AlertType type, String msg) {
+        new Alert(type, msg).showAndWait();
+    }
 
-            String linked = AuthSession.getInstance().getLinkedEntityId();
+    // === Logic (unchanged) ===
+    private void handleUnregister(TableView<Document> table) {
+        Document sel = table.getSelectionModel().getSelectedItem();
+        if (sel == null) { alert(Alert.AlertType.INFORMATION, "Select a course to unregister."); return; }
+        String code = sel.getString("code");
+        String linked = AuthSession.getInstance().getLinkedEntityId();
+        boolean ok = enrollmentService.unregisterStudentFromCourse(linked, code);
+        if (ok) { loadMyCourses(); alert(Alert.AlertType.INFORMATION, "Unregistered from " + code); }
+        else alert(Alert.AlertType.WARNING, "You are not registered for " + code);
+    }
 
-            // ✅ Admin sees all
-            if (isAdmin) {
-                courseItems.addAll(all);
-                return;
-            }
+    private void handleRegister(TableView<Document> table) {
+        Document sel = table.getSelectionModel().getSelectedItem();
+        if (sel == null) { alert(Alert.AlertType.INFORMATION, "Select a course to register."); return; }
+        String code = sel.getString("code");
+        String linked = AuthSession.getInstance().getLinkedEntityId();
+        if (linked == null || linked.isBlank()) { alert(Alert.AlertType.WARNING, "No linked student record."); return; }
+        try {
+            boolean ok = enrollmentService.registerStudentToCourse(linked, code);
+            if (ok) { loadMyCourses(); alert(Alert.AlertType.INFORMATION, "Registered for " + code); }
+            else alert(Alert.AlertType.WARNING, "Could not register for " + code);
+        } catch (Exception ex) { alert(Alert.AlertType.ERROR, "Error: " + ex.getMessage()); }
+    }
 
-            // ✅ Professor / TA / Staff see only assigned courses
-            if (isStaff && linked != null && !linked.isBlank()) {
-                List<Document> filtered = all.stream()
-                        .filter(course -> {
-                            Object assigned = course.get("assignedStaff");
-                            if (assigned instanceof List) {
-                                for (Object a : (List<?>) assigned) {
-                                    if (a != null && linked.equalsIgnoreCase(a.toString())) {
-                                        return true;
-                                    }
-                                }
+    private void handleDelete(TableView<Document> table) {
+        Document sel = table.getSelectionModel().getSelectedItem();
+        if (sel == null) { alert(Alert.AlertType.INFORMATION, "Select a course to delete."); return; }
+        try {
+            courseService.delete(sel.getObjectId("_id").toHexString());
+            loadCourses();
+        } catch (Exception ex) { alert(Alert.AlertType.ERROR, "Error: " + ex.getMessage()); }
+    }
+
+    private void handleAssign(TableView<Document> table) {
+        Document sel = table.getSelectionModel().getSelectedItem();
+        if (sel == null) { alert(Alert.AlertType.INFORMATION, "Select a course to assign."); return; }
+        TextInputDialog dlg = new TextInputDialog();
+        dlg.setHeaderText("Enter Staff ID to assign (e.g., P1001)");
+        dlg.showAndWait().ifPresent(staffId -> {
+            try {
+                boolean ok = courseService.assignStaffToCourse(sel.getString("code"), staffId.trim());
+                if (ok) { loadCourses(); alert(Alert.AlertType.INFORMATION, "Assigned " + staffId + " to " + sel.getString("code")); }
+                else alert(Alert.AlertType.ERROR, "Course not found");
+            } catch (Exception ex) { alert(Alert.AlertType.ERROR, "Error: " + ex.getMessage()); }
+        });
+    }
+
+    private void loadCourses() {
+        courseItems.clear();
+        List<Document> all = courseService.listAll();
+        if (all == null) return;
+        String linked = AuthSession.getInstance().getLinkedEntityId();
+
+        if (isAdmin) { courseItems.addAll(all); return; }
+
+        if (isStaff && linked != null && !linked.isBlank()) {
+            List<Document> filtered = all.stream()
+                    .filter(course -> {
+                        Object assigned = course.get("assignedStaff");
+                        if (assigned instanceof List<?>) {
+                            for (Object a : (List<?>) assigned) {
+                                if (a != null && linked.equalsIgnoreCase(a.toString())) return true;
                             }
-                            return false;
-                        })
-                        .collect(Collectors.toList());
-                courseItems.addAll(filtered);
-                return;
-            }
-
-            // ✅ Default (student or unknown)
-            courseItems.addAll(all);
-        }
-
+                        }
+                        return false;
+                    }).collect(Collectors.toList());
+            courseItems.addAll(filtered);
+        } else courseItems.addAll(all);
+    }
 
     private void loadMyCourses() {
         myCourses.clear();
@@ -262,13 +249,12 @@ public class CoursesController {
         List<Document> regs = enrollmentService.listByStudent(linked);
         if (regs == null) return;
         for (Document r : regs) {
-            String code = r.getString("courseCode");
-            Document course = courseService.findByCode(code);
+            Document course = courseService.findByCode(r.getString("courseCode"));
             if (course != null) myCourses.add(course);
         }
     }
 
-    private void addCourse() {
+   private void addCourse() {
         Dialog<Document> dlg = new Dialog<>();
         dlg.setTitle("Add Course");
         dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -376,6 +362,5 @@ public class CoursesController {
             }
         }
 
-
-    public VBox getView(){ return view; }
+    public VBox getView() { return view; }
 }

@@ -33,6 +33,14 @@ public class StaffService {
     public void delete(String id) {
         dao.delete(id);
     }
+    
+    
+    public boolean deleteByStaffId(String staffId) {
+    if (staffId == null || staffId.isBlank()) return false;
+    return dao.deleteByStaffId(staffId);
+    }
+
+
 
     /**
      * Assign staff to a course (simple assignment: push staffId into course.assignedStaff array)

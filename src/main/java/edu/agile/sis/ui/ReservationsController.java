@@ -2,34 +2,29 @@ package edu.agile.sis.ui;
 
 import edu.agile.sis.security.AuthSession;
 import edu.agile.sis.service.ReservationService;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import org.bson.Document;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 /**
- * ReservationsController - CRUD UI for reservations with role-based UI restrictions.
- * Staff (Professor/TA/Staff) may CREATE (book) but cannot EDIT or DELETE reservations.
- * Admin may do all operations and can Approve/Reject pending bookings.
- *
- * Visibility:
- * - Admin: sees all reservations
- * - Staff: sees only reservations they created (createdBy == username)
+ * ReservationsController 
+ 
  */
 public class ReservationsController {
-    private final VBox view = new VBox(10);
+    private final VBox view = new VBox(20);
     private final ReservationService reservationService = new ReservationService();
 
     private final ObservableList<Document> allReservations = FXCollections.observableArrayList();
@@ -37,42 +32,52 @@ public class ReservationsController {
     private final TableView<Document> table = new TableView<>();
     private final SimpleDateFormat dateTimeFmt = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
-    // pagination
     private int pageSize = 10;
     private int currentPage = 1;
     private int totalPages = 1;
 
-    // role flags
     private final boolean isAdmin;
     private final boolean isProfessor;
     private final boolean isTA;
     private final boolean isStaffGeneric;
-    private final boolean canCreate; // allowed to book
-    private final boolean canModify; // allowed to edit/delete/approve/reject
+    private final boolean canCreate;
+    private final boolean canModify;
 
-    // controls
     private final Label pageLabel = new Label();
-    private final Button prevBtn = new Button("Prev");
-    private final Button nextBtn = new Button("Next");
+    private final Button prevBtn = new Button("◀ Prev");
+    private final Button nextBtn = new Button("Next ▶");
     private final ComboBox<Integer> pageSizeBox = new ComboBox<>();
 
     public ReservationsController() {
-        view.setPadding(new Insets(12));
-        Label title = new Label("Reservations Management");
+   
+        view.setPadding(new Insets(25));
+        view.setStyle("-fx-background-color: linear-gradient(to bottom right, #f8f9fa, #e9ecef);");
+        view.setSpacing(20);
 
-        // load roles
+   
+        Label title = new Label("🏢 Room Reservations");
+        title.setFont(Font.font("Segoe UI", FontWeight.BOLD, 22));
+        title.setTextFill(Color.web("#343a40"));
+
+        Label subtitle = new Label("Manage and approve room booking requests");
+        subtitle.setFont(Font.font("Segoe UI", 14));
+        subtitle.setTextFill(Color.web("#6c757d"));
+
+        VBox headerBox = new VBox(5, title, subtitle);
+
+        
         isAdmin = AuthSession.getInstance().hasRole("Admin");
         isProfessor = AuthSession.getInstance().hasRole("Professor");
         isTA = AuthSession.getInstance().hasRole("TA");
         isStaffGeneric = AuthSession.getInstance().hasRole("Staff") || AuthSession.getInstance().hasRole("Lecturer");
-
-        // policy: Admin can do everything; Professors/TAs/Staff can create/book but not edit/delete
         canCreate = isAdmin || isProfessor || isTA || isStaffGeneric;
-        canModify = isAdmin; // only admin can modify/delete/approve/reject
+        canModify = isAdmin;
 
-        // Search field
+        
         TextField searchField = new TextField();
-        searchField.setPromptText("Search room, createdBy or purpose...");
+        searchField.setPromptText("🔍 Search room, user, or purpose...");
+        searchField.setPrefWidth(300);
+        searchField.setStyle("-fx-background-radius: 6; -fx-padding: 6 10;");
         searchField.textProperty().addListener((obs, oldV, newV) -> {
             String q = (newV == null) ? "" : newV.trim().toLowerCase();
             if (q.isEmpty()) {
@@ -83,7 +88,7 @@ public class ReservationsController {
             }
         });
 
-        // Page size selector
+   
         pageSizeBox.getItems().addAll(5, 10, 25, 50);
         pageSizeBox.setValue(pageSize);
         pageSizeBox.setOnAction(e -> {
@@ -91,238 +96,178 @@ public class ReservationsController {
             currentPage = 1;
             updatePagination();
         });
+        prevBtn.setOnAction(e -> { if (currentPage > 1) { currentPage--; updatePagination(); } });
+        nextBtn.setOnAction(e -> { if (currentPage < totalPages) { currentPage++; updatePagination(); } });
 
-        prevBtn.setOnAction(e -> {
-            if (currentPage > 1) {
-                currentPage--;
-                updatePagination();
-            }
+        HBox pagingControls = new HBox(10, new Label("Page size:"), pageSizeBox, prevBtn, pageLabel, nextBtn);
+        pagingControls.setAlignment(Pos.CENTER_LEFT);
+
+        setupTable();
+
+       
+        Button addBtn = styledButton("➕ Add Reservation", "#28a745");
+        Button viewBtn = styledButton("👁 View / Edit", "#007bff");
+        Button approveBtn = styledButton("✅ Approve", "#17a2b8");
+        Button rejectBtn = styledButton("❌ Reject", "#ffc107");
+        Button deleteBtn = styledButton("🗑 Delete", "#dc3545");
+        Button refreshBtn = styledButton("🔄 Refresh", "#6c757d");
+
+        addBtn.setDisable(!canCreate);
+        deleteBtn.setDisable(!canModify);
+        approveBtn.setDisable(!canModify);
+        rejectBtn.setDisable(!canModify);
+
+        addBtn.setOnAction(e -> {
+            if (!canCreate) showAlert(Alert.AlertType.WARNING, "You don't have permission to create reservations.");
+            else addReservation();
         });
-        nextBtn.setOnAction(e -> {
-            if (currentPage < totalPages) {
-                currentPage++;
-                updatePagination();
-            }
+
+        viewBtn.setOnAction(e -> {
+            Document sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null) { showAlert(Alert.AlertType.INFORMATION, "Select a reservation first."); return; }
+            if (canModify) showDetailDialog(sel);
+            else showDetailDialogReadOnly(sel);
         });
 
-        HBox pagingControls = new HBox(8, new Label("Page size:"), pageSizeBox, prevBtn, pageLabel, nextBtn);
-        pagingControls.setPadding(new Insets(6));
+        approveBtn.setOnAction(e -> handleApproval(true));
+        rejectBtn.setOnAction(e -> handleApproval(false));
 
-        // Table columns
+        deleteBtn.setOnAction(e -> handleDelete());
+        refreshBtn.setOnAction(e -> loadReservations());
+
+        HBox actionButtons = new HBox(10, addBtn, viewBtn, approveBtn, rejectBtn, deleteBtn, refreshBtn);
+        actionButtons.setAlignment(Pos.CENTER_LEFT);
+        actionButtons.setPadding(new Insets(10, 0, 0, 0));
+
+     
+        VBox card = new VBox(15, searchField, pagingControls, table, actionButtons);
+        card.setPadding(new Insets(20));
+        card.setBackground(new Background(new BackgroundFill(Color.WHITE, new CornerRadii(10), Insets.EMPTY)));
+        card.setStyle("-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.15), 10, 0, 0, 3);");
+
+        view.getChildren().addAll(headerBox, card);
+        loadReservations();
+    }
+
+    private void setupTable() {
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        table.setItems(paged);
+        table.setStyle("-fx-background-color: white; -fx-border-radius: 6; -fx-background-radius: 6;");
+        table.setPlaceholder(new Label("No reservations found."));
+
         TableColumn<Document, String> idCol = new TableColumn<>("ID");
-        idCol.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(getIdString(cell.getValue())));
-        idCol.setPrefWidth(160);
+        idCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(getIdString(c.getValue())));
 
         TableColumn<Document, String> roomCol = new TableColumn<>("Room");
-        roomCol.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(safeGetString(cell.getValue(), "roomId")));
-        roomCol.setPrefWidth(120);
+        roomCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(safeGetString(c.getValue(), "roomId")));
 
         TableColumn<Document, String> startCol = new TableColumn<>("Start");
-        startCol.setCellValueFactory(cell -> {
-            Date d = safeGetDate(cell.getValue(), "start");
+        startCol.setCellValueFactory(c -> {
+            Date d = safeGetDate(c.getValue(), "start");
             return new javafx.beans.property.SimpleStringProperty(d == null ? "" : dateTimeFmt.format(d));
         });
-        startCol.setPrefWidth(140);
 
         TableColumn<Document, String> endCol = new TableColumn<>("End");
-        endCol.setCellValueFactory(cell -> {
-            Date d = safeGetDate(cell.getValue(), "end");
+        endCol.setCellValueFactory(c -> {
+            Date d = safeGetDate(c.getValue(), "end");
             return new javafx.beans.property.SimpleStringProperty(d == null ? "" : dateTimeFmt.format(d));
         });
-        endCol.setPrefWidth(140);
 
-        TableColumn<Document, String> createdByCol = new TableColumn<>("Created By");
-        createdByCol.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(safeGetString(cell.getValue(), "createdBy")));
-        createdByCol.setPrefWidth(120);
+        TableColumn<Document, String> creatorCol = new TableColumn<>("Created By");
+        creatorCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(safeGetString(c.getValue(), "createdBy")));
 
         TableColumn<Document, String> purposeCol = new TableColumn<>("Purpose");
-        purposeCol.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(safeGetString(cell.getValue(), "purpose")));
-        purposeCol.setPrefWidth(200);
+        purposeCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(safeGetString(c.getValue(), "purpose")));
 
         TableColumn<Document, String> statusCol = new TableColumn<>("Status");
-        statusCol.setCellValueFactory(cell -> new javafx.beans.property.SimpleStringProperty(safeGetString(cell.getValue(), "status")));
-        statusCol.setPrefWidth(100);
+        statusCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(safeGetString(c.getValue(), "status")));
 
-        table.getColumns().add(idCol);
-        table.getColumns().add(roomCol);
-        table.getColumns().add(startCol);
-        table.getColumns().add(endCol);
-        table.getColumns().add(createdByCol);
-        table.getColumns().add(purposeCol);
-        table.getColumns().add(statusCol);
+        table.getColumns().setAll(idCol, roomCol, startCol, endCol, creatorCol, purposeCol, statusCol);
 
-        table.setItems(paged);
-
-        // Double-click to view details (everyone allowed to view)
         table.setRowFactory(tv -> {
             TableRow<Document> row = new TableRow<>();
             row.setOnMouseClicked(ev -> {
                 if (ev.getClickCount() == 2 && !row.isEmpty()) {
-                    Document doc = row.getItem();
-                    showDetailDialog(doc);
+                    if (canModify) showDetailDialog(row.getItem());
+                    else showDetailDialogReadOnly(row.getItem());
                 }
             });
             return row;
         });
+    }
 
-        // Control buttons
-        Button addBtn = new Button("Add Reservation");
-        addBtn.setOnAction(e -> {
-            if (!canCreate) {
-                new Alert(Alert.AlertType.WARNING, "You don't have permission to create reservations.").showAndWait();
-                return;
-            }
-            addReservation();
-        });
-        addBtn.setDisable(!canCreate);
+    private Button styledButton(String text, String color) {
+        Button btn = new Button(text);
+        btn.setStyle(String.format("""
+                -fx-background-color: %s;
+                -fx-text-fill: white;
+                -fx-font-weight: bold;
+                -fx-background-radius: 6;
+                -fx-padding: 6 14 6 14;
+                -fx-cursor: hand;
+            """, color));
+        return btn;
+    }
 
-        Button viewBtn = new Button("View / Edit");
-        viewBtn.setOnAction(e -> {
-            Document sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) new Alert(Alert.AlertType.INFORMATION, "Select a reservation first.").showAndWait();
-            else {
-                if (!canModify) {
-                    // non-admins may view details (read-only)
-                    showDetailDialogReadOnly(sel);
-                } else {
-                    showDetailDialog(sel);
-                }
-            }
-        });
+    private void showAlert(Alert.AlertType type, String msg) {
+        new Alert(type, msg).showAndWait();
+    }
 
-        Button deleteBtn = new Button("Delete Selected");
-        deleteBtn.setOnAction(e -> {
-            Document sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { return; }
-            if (!canModify) {
-                new Alert(Alert.AlertType.WARNING, "You don't have permission to delete reservations.").showAndWait();
-                return;
-            }
-            final String id = getIdString(sel);
-            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Delete reservation " + id + "?", ButtonType.YES, ButtonType.NO);
-            confirm.setHeaderText("Confirm delete");
-            confirm.showAndWait().ifPresent(btn -> {
-                if (btn == ButtonType.YES) {
-                    reservationService.deleteReservation(id);
+    // === Core Logic - unchanged ===
+
+    private void handleApproval(boolean approve) {
+        Document sel = table.getSelectionModel().getSelectedItem();
+        if (sel == null) { showAlert(Alert.AlertType.INFORMATION, "Select a reservation first."); return; }
+
+        String id = getIdString(sel);
+        try {
+            boolean ok = approve
+                    ? reservationService.approveReservation(id)
+                    : reservationService.rejectReservation(id);
+            if (ok) {
+                Platform.runLater(() -> {
+                    showAlert(Alert.AlertType.INFORMATION, approve ? "Reservation approved." : "Reservation rejected.");
                     loadReservations();
-                }
-            });
+                });
+            } else {
+                Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "No changes made."));
+            }
+        } catch (Exception ex) {
+            Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, ex.getMessage()));
+        }
+    }
+
+    private void handleDelete() {
+        Document sel = table.getSelectionModel().getSelectedItem();
+        if (sel == null) { showAlert(Alert.AlertType.INFORMATION, "Select a reservation first."); return; }
+        if (!canModify) { showAlert(Alert.AlertType.WARNING, "You cannot delete reservations."); return; }
+
+        String id = getIdString(sel);
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Delete reservation " + id + "?", ButtonType.YES, ButtonType.NO);
+        confirm.setHeaderText("Confirm Deletion");
+        confirm.showAndWait().ifPresent(btn -> {
+            if (btn == ButtonType.YES) {
+                reservationService.deleteReservation(id);
+                loadReservations();
+            }
         });
-        deleteBtn.setDisable(!canModify);
-// Admin only approve / reject
-Button approveBtn = new Button("Approve");
-approveBtn.setOnAction(e -> {
-    Document sel = table.getSelectionModel().getSelectedItem();
-    if (sel == null) {
-        System.out.println("[Approve] No selection");
-        return;
-    }
-    String id = getIdString(sel);
-    System.out.println("[Approve] clicked for id = " + id + " (doc: " + sel + ")");
-    try {
-        boolean ok = reservationService.approveReservation(id);
-        System.out.println("[Approve] service returned: " + ok);
-        if (ok) {
-            // ensure UI updates on FX thread
-            javafx.application.Platform.runLater(() -> {
-                new Alert(Alert.AlertType.INFORMATION, "Reservation approved.").showAndWait();
-                loadReservations();
-            });
-        } else {
-            javafx.application.Platform.runLater(() ->
-                new Alert(Alert.AlertType.ERROR, "Approve failed. (no rows modified)").showAndWait()
-            );
-        }
-    } catch (SecurityException ex) {
-        javafx.application.Platform.runLater(() ->
-            new Alert(Alert.AlertType.ERROR, "Permission denied: " + ex.getMessage()).showAndWait()
-        );
-    } catch (Exception ex) {
-        ex.printStackTrace();
-        javafx.application.Platform.runLater(() ->
-            new Alert(Alert.AlertType.ERROR, "Approve failed: " + ex.getMessage()).showAndWait()
-        );
-    }
-});
-approveBtn.setDisable(!canModify);
-
-Button rejectBtn = new Button("Reject");
-rejectBtn.setOnAction(e -> {
-    Document sel = table.getSelectionModel().getSelectedItem();
-    if (sel == null) {
-        System.out.println("[Reject] No selection");
-        return;
-    }
-    String id = getIdString(sel);
-    System.out.println("[Reject] clicked for id = " + id + " (doc: " + sel + ")");
-    try {
-        boolean ok = reservationService.rejectReservation(id);
-        System.out.println("[Reject] service returned: " + ok);
-        if (ok) {
-            javafx.application.Platform.runLater(() -> {
-                new Alert(Alert.AlertType.INFORMATION, "Reservation rejected.").showAndWait();
-                loadReservations();
-            });
-        } else {
-            javafx.application.Platform.runLater(() ->
-                new Alert(Alert.AlertType.ERROR, "Reject failed. (no rows modified)").showAndWait()
-            );
-        }
-    } catch (SecurityException ex) {
-        javafx.application.Platform.runLater(() ->
-            new Alert(Alert.AlertType.ERROR, "Permission denied: " + ex.getMessage()).showAndWait()
-        );
-    } catch (Exception ex) {
-        ex.printStackTrace();
-        javafx.application.Platform.runLater(() ->
-            new Alert(Alert.AlertType.ERROR, "Reject failed: " + ex.getMessage()).showAndWait()
-        );
-    }
-});
-rejectBtn.setDisable(!canModify);
-
-
-        Button refreshBtn = new Button("Refresh");
-        refreshBtn.setOnAction(e -> loadReservations());
-
-        HBox buttons = new HBox(8, addBtn, viewBtn, approveBtn, rejectBtn, deleteBtn, refreshBtn);
-        buttons.setPadding(new Insets(6));
-
-        view.getChildren().addAll(title, searchField, pagingControls, table, buttons);
-
-        loadReservations();
     }
 
-    /**
-     * Load reservations into the controller's master list applying role-based visibility:
-     * - Admin: loads all reservations
-     * - Non-admin staff: loads only reservations where createdBy == current username
-     */
     private void loadReservations() {
         allReservations.clear();
         List<Document> reservations = reservationService.listAllReservations();
         if (reservations == null) reservations = new ArrayList<>();
 
-        if (isAdmin) {
-            allReservations.addAll(reservations);
-        } else {
-            // staff/users see only their own created reservations
+        if (isAdmin) allReservations.addAll(reservations);
+        else {
             String me = AuthSession.getInstance().getUsername();
-            for (Document r : reservations) {
-                String createdBy = safeGetString(r, "createdBy");
-                if (createdBy != null && createdBy.equalsIgnoreCase(me)) {
-                    allReservations.add(r);
-                }
-            }
+            for (Document r : reservations)
+                if (me.equalsIgnoreCase(safeGetString(r, "createdBy"))) allReservations.add(r);
         }
-
         currentPage = 1;
         updatePagination();
     }
 
-    /**
-     * Filtered load: respects the same role-based visibility as loadReservations().
-     */
     private void loadReservationsFiltered(String q) {
         allReservations.clear();
         List<Document> reservations = reservationService.listAllReservations();
@@ -335,21 +280,10 @@ rejectBtn.setDisable(!canModify);
             String room = safeGetString(d, "roomId").toLowerCase();
             String cb = safeGetString(d, "createdBy").toLowerCase();
             String purpose = safeGetString(d, "purpose").toLowerCase();
-
-            boolean matches = room.contains(q) || cb.contains(q) || purpose.contains(q);
-            if (!matches) continue;
-
-            if (showAll) {
-                allReservations.add(d);
-            } else {
-                // only add if createdBy == me
-                String createdBy = safeGetString(d, "createdBy");
-                if (createdBy != null && createdBy.equalsIgnoreCase(me)) {
-                    allReservations.add(d);
-                }
+            if ((room + cb + purpose).contains(q)) {
+                if (showAll || cb.equalsIgnoreCase(me)) allReservations.add(d);
             }
         }
-
         currentPage = 1;
         updatePagination();
     }
@@ -358,23 +292,39 @@ rejectBtn.setDisable(!canModify);
         int totalItems = allReservations.size();
         totalPages = Math.max(1, (int) Math.ceil((double) totalItems / pageSize));
         if (currentPage > totalPages) currentPage = totalPages;
-        int fromIndex = (currentPage - 1) * pageSize;
-        int toIndex = Math.min(fromIndex + pageSize, totalItems);
+        int from = (currentPage - 1) * pageSize;
+        int to = Math.min(from + pageSize, totalItems);
 
-        paged.clear();
-        if (fromIndex < allReservations.size()) {
-            paged.addAll(new ArrayList<>(allReservations).subList(fromIndex, toIndex));
-        }
-
+        paged.setAll(allReservations.subList(from, to));
         pageLabel.setText("Page " + currentPage + " / " + totalPages + " (Total: " + totalItems + ")");
         prevBtn.setDisable(currentPage <= 1);
         nextBtn.setDisable(currentPage >= totalPages);
     }
 
-    // ---------------------------
-    // Add / Edit / Delete
-    // ---------------------------
-
+    // === Utilities ===
+    private String getIdString(Document doc) {
+        Object id = doc.get("_id");
+        if (id instanceof org.bson.types.ObjectId) return ((org.bson.types.ObjectId) id).toHexString();
+        return id == null ? "" : id.toString();
+    }
+    private String safeGetString(Document doc, String key) {
+        Object o = doc.get(key);
+        return o == null ? "" : o.toString();
+    }
+    private Date safeGetDate(Document doc, String key) {
+        Object o = doc.get(key);
+        return (o instanceof Date) ? (Date) o : null;
+    }
+    private Date parseDateTime(LocalDate d, String time) {
+        if (d == null || time == null || time.isBlank()) return null;
+        try {
+            String s = d.format(DateTimeFormatter.ISO_LOCAL_DATE) + " " + time.trim();
+            return new SimpleDateFormat("yyyy-MM-dd HH:mm").parse(s);
+        } catch (Exception ex) { return null; }
+    }
+    
+    
+    
     private void addReservation() {
         Dialog<Document> dlg = new Dialog<>();
         dlg.setTitle("Add Reservation");
@@ -581,45 +531,7 @@ rejectBtn.setDisable(!canModify);
         }
     }
 
-    // ---------------------------
-    // Helpers
-    // ---------------------------
+   
 
-    private String getIdString(Document doc) {
-        if (doc == null) return "";
-        Object idObj = doc.get("_id");
-        if (idObj == null) return "";
-        if (idObj instanceof org.bson.types.ObjectId) {
-            return ((org.bson.types.ObjectId) idObj).toHexString();
-        } else {
-            return idObj.toString();
-        }
-    }
-
-    private String safeGetString(Document doc, String key) {
-        if (doc == null) return "";
-        Object o = doc.get(key);
-        return o == null ? "" : o.toString();
-    }
-
-    private Date safeGetDate(Document doc, String key) {
-        if (doc == null) return null;
-        Object o = doc.get(key);
-        if (o instanceof Date) return (Date) o;
-        return null;
-    }
-
-    private Date parseDateTime(LocalDate d, String time) {
-        if (d == null || time == null || time.trim().isEmpty()) return null;
-        try {
-            String s = d.format(DateTimeFormatter.ISO_LOCAL_DATE) + " " + time.trim();
-            return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").parse(s);
-        } catch (Exception ex) {
-            return null;
-        }
-    }
-
-    public VBox getView() {
-        return view;
-    }
+    public VBox getView() { return view; }
 }
