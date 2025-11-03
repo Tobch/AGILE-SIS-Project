@@ -10,9 +10,12 @@
   <version>0.1.0-SNAPSHOT</version>
 
   <properties>
-    <java.version>19</java.version> <!-- match your JDK -->
-    <javafx.version>20.0.1</javafx.version>
+    <!-- CHANGED to the stable LTS version -->
+    <java.version>21</java.version> 
+    <!-- CHANGED to match the stable Java version -->
+    <javafx.version>21.0.2</javafx.version> 
     <mongo.driver.version>4.11.0</mongo.driver.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <dependencies>
@@ -44,7 +47,6 @@
       <artifactId>javafx-graphics</artifactId>
       <version>${javafx.version}</version>
     </dependency>
-    <!-- add javafx-media if your app plays video/audio -->
 
     <!-- BCrypt -->
     <dependency>
@@ -77,7 +79,7 @@
       <plugin>
         <groupId>org.openjfx</groupId>
         <artifactId>javafx-maven-plugin</artifactId>
-        <version>0.0.8</version> <!-- works with JDK 11–21 -->
+        <version>0.0.8</version>
         <configuration>
           <mainClass>edu.agile.sis.App</mainClass>
         </configuration>
