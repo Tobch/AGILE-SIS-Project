@@ -32,7 +32,7 @@ public class MainController {
         Button coursesBtn       = createMenuButton("📚", "Courses");
         //Button assignmentsBtn   = createMenuButton("📝", "Assignments");
         //Button quizzesBtn       = createMenuButton("❓", "Quizzes");
-        //Button messagesBtn      = createMenuButton("💬", "Messages");
+        Button messagesBtn      = createMenuButton("💬", "Messages");
         //Button eavBtn           = createMenuButton("⚙️", "EAV Admin");
         Button logoutBtn        = createMenuButton("🚪", "Logout");
 
@@ -48,7 +48,7 @@ public class MainController {
         coursesBtn.setOnAction(e -> view.setCenter(new CoursesController().getView()));
        // assignmentsBtn.setOnAction(e -> view.setCenter(new AssignmentsController().getView()));
        // quizzesBtn.setOnAction(e -> view.setCenter(new QuizzesController().getView()));
-       // messagesBtn.setOnAction(e -> view.setCenter(new MessagesController().getView()));
+        messagesBtn.setOnAction(e -> view.setCenter(new MessagesController().getView()));
         //eavBtn.setOnAction(e -> view.setCenter(new EavAdminController().getView()));
 
         
@@ -67,13 +67,13 @@ public class MainController {
         boolean isStudent = AuthSession.getInstance().hasRole("Student");
 
         if (isAdmin) {
-            sidebar.getChildren().addAll(studentsBtn, staffBtn,coursesBtn ,reservationsBtn);
+            sidebar.getChildren().addAll(studentsBtn, staffBtn,coursesBtn ,reservationsBtn ,messagesBtn);
         } else if (isProf || isTA || isStaffGeneric) {
-            sidebar.getChildren().addAll(reservationsBtn ,coursesBtn );
+            sidebar.getChildren().addAll(reservationsBtn ,coursesBtn ,messagesBtn );
         } else if (isStudent) {
-            sidebar.getChildren().addAll(myProfileBtn, coursesBtn);
+            sidebar.getChildren().addAll(myProfileBtn, coursesBtn ,messagesBtn);
         } else {
-            sidebar.getChildren().addAll( myProfileBtn,coursesBtn);
+            sidebar.getChildren().addAll( myProfileBtn,coursesBtn , messagesBtn);
         }
 
         sidebar.getChildren().add(logoutBtn);
