@@ -12,7 +12,7 @@ public class Bootstrap {
 
         // If you want to override programmatically, uncomment and set the URI (no angle brackets)
          cfg.set("mongodb.uri", "mongodb+srv://ahmedtobch2002:Tobch2002@cluster0.tst84cj.mongodb.net/agile_sis_db?retryWrites=true&w=majority");
-         cfg.set("mongodb.database", "agile_sis_db");
+         cfg.set("mongodb.database", "agile_si_sdb");
         try {
             cfg.save();
         } catch (Exception ex) {

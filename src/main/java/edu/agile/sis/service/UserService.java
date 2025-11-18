@@ -6,7 +6,16 @@ import org.mindrot.jbcrypt.BCrypt;
 import java.util.List;
 
 public class UserService {
-    private final UserDAO userDAO = new UserDAO();
+    private final UserDAO userDAO;
+
+    public UserService() {
+        this.userDAO = new UserDAO();
+    }
+
+    // Constructor for dependency injection (used in tests)
+    public UserService(UserDAO userDAO) {
+        this.userDAO = userDAO;
+    }
 
     /**
      * Create user with bcrypt hash for password.
