@@ -30,10 +30,10 @@ public class MainController {
         Button reservationsBtn  = createMenuButton("📅", "Room Reservations");
         Button staffBtn         = createMenuButton("👥", "Manage Staff");
         Button coursesBtn       = createMenuButton("📚", "Courses");
-        //Button assignmentsBtn   = createMenuButton("📝", "Assignments");
-        //Button quizzesBtn       = createMenuButton("❓", "Quizzes");
+        Button assignmentsBtn   = createMenuButton("📝", "Assignments");
+        Button quizzesBtn       = createMenuButton("❓", "Quizzes");
         Button messagesBtn      = createMenuButton("💬", "Messages");
-        //Button eavBtn           = createMenuButton("⚙️", "EAV Admin");
+        Button eavBtn           = createMenuButton("⚙️", "EAV Admin");
         Button logoutBtn        = createMenuButton("🚪", "Logout");
 
         // --- Event Handlers ---
@@ -46,10 +46,10 @@ public class MainController {
        reservationsBtn.setOnAction(e -> view.setCenter(new ReservationsController().getView()));
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
         coursesBtn.setOnAction(e -> view.setCenter(new CoursesController().getView()));
-       // assignmentsBtn.setOnAction(e -> view.setCenter(new AssignmentsController().getView()));
-       // quizzesBtn.setOnAction(e -> view.setCenter(new QuizzesController().getView()));
+        assignmentsBtn.setOnAction(e -> view.setCenter(new AssignmentsController().getView()));
+        quizzesBtn.setOnAction(e -> view.setCenter(new QuizzesController().getView()));
         messagesBtn.setOnAction(e -> view.setCenter(new MessagesController().getView()));
-        //eavBtn.setOnAction(e -> view.setCenter(new EavAdminController().getView()));
+        eavBtn.setOnAction(e -> view.setCenter(new EavAdminController().getView()));
 
         
 
@@ -67,11 +67,11 @@ public class MainController {
         boolean isStudent = AuthSession.getInstance().hasRole("Student");
 
         if (isAdmin) {
-            sidebar.getChildren().addAll(studentsBtn, staffBtn,coursesBtn ,reservationsBtn ,messagesBtn);
+            sidebar.getChildren().addAll(studentsBtn, staffBtn,coursesBtn ,reservationsBtn ,messagesBtn,eavBtn);
         } else if (isProf || isTA || isStaffGeneric) {
-            sidebar.getChildren().addAll(reservationsBtn ,coursesBtn ,messagesBtn );
+            sidebar.getChildren().addAll(reservationsBtn ,coursesBtn ,messagesBtn, assignmentsBtn, quizzesBtn, myProfileBtn);
         } else if (isStudent) {
-            sidebar.getChildren().addAll(myProfileBtn, coursesBtn ,messagesBtn);
+            sidebar.getChildren().addAll(myProfileBtn, coursesBtn ,messagesBtn, assignmentsBtn, quizzesBtn);
         } else {
             sidebar.getChildren().addAll( myProfileBtn,coursesBtn , messagesBtn);
         }
