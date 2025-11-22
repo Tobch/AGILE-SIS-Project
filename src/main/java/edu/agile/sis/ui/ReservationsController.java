@@ -149,6 +149,7 @@ public class ReservationsController {
         loadReservations();
     }
 
+    @SuppressWarnings("unchecked")
     private void setupTable() {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         table.setItems(paged);
