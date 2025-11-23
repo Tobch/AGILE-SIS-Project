@@ -69,7 +69,7 @@ public class MainController {
         if (isAdmin) {
             sidebar.getChildren().addAll(studentsBtn, staffBtn,coursesBtn ,reservationsBtn ,messagesBtn,eavBtn);
         } else if (isProf || isTA || isStaffGeneric) {
-            sidebar.getChildren().addAll(reservationsBtn ,coursesBtn ,messagesBtn, assignmentsBtn, quizzesBtn, myProfileBtn);
+            sidebar.getChildren().addAll(reservationsBtn ,coursesBtn ,messagesBtn, assignmentsBtn, quizzesBtn);
         } else if (isStudent) {
             sidebar.getChildren().addAll(myProfileBtn, coursesBtn ,messagesBtn, assignmentsBtn, quizzesBtn);
         } else {
