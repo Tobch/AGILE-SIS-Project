@@ -8,14 +8,18 @@
   <groupId>edu.agile.sis</groupId>
   <artifactId>agile-sis-desktop</artifactId>
   <version>0.1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
 
   <properties>
-    <!-- CHANGED to the stable LTS version -->
-    <java.version>21</java.version> 
-    <!-- CHANGED to match the stable Java version -->
-    <javafx.version>21.0.2</javafx.version> 
-    <mongo.driver.version>4.11.0</mongo.driver.version>
+    <!-- Explicitly pin compile target to Java 19 -->
+    <java.version>19</java.version>
+    <maven.compiler.source>19</maven.compiler.source>
+    <maven.compiler.target>19</maven.compiler.target>
+    <maven.compiler.release>19</maven.compiler.release>
+
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <javafx.version>20.0.1</javafx.version>
+    <mongo.driver.version>4.11.0</mongo.driver.version>
   </properties>
 
   <dependencies>
@@ -55,7 +59,7 @@
       <version>0.4</version>
     </dependency>
 
-    <!-- JUnit -->
+    <!-- JUnit Jupiter -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
@@ -63,43 +67,49 @@
       <scope>test</scope>
     </dependency>
 
-    <!-- Mockito -->
+    <!-- Mockito (for unit tests) -->
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>5.5.0</version>
+      <version>5.6.0</version>
       <scope>test</scope>
     </dependency>
+
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>5.5.0</version>
+      <version>5.6.0</version>
       <scope>test</scope>
     </dependency>
-    <!-- Testcontainers MongoDB for integration tests -->
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>mongodb</artifactId>
-      <version>1.19.0</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- Flapdoodle embedded Mongo as local fallback for environments without Docker -->
-    <dependency>
-      <groupId>de.flapdoodle.embed</groupId>
-      <artifactId>de.flapdoodle.embed.mongo</artifactId>
-      <version>4.7.2</version>
-      <scope>test</scope>
-    </dependency>
+
   </dependencies>
 
   <build>
     <plugins>
-      <!-- Compiler plugin -->
+      <!-- Compiler plugin (explicitly bound to Java 19) -->
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.11.0</version>
         <configuration>
-          <release>${java.version}</release>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+          <release>${maven.compiler.release}</release>
+          <encoding>${project.build.sourceEncoding}</encoding>
+        </configuration>
+      </plugin>
+
+      <!-- Surefire plugin to run tests on JUnit Platform -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.1.2</version>
+        <configuration>
+          <!-- ensures modules/classpath behave correctly for JavaFX projects -->
+          <useModulePath>false</useModulePath>
+          <includes>
+            <include>**/*Test.java</include>
+          </includes>
         </configuration>
       </plugin>
 
@@ -111,26 +121,6 @@
         <configuration>
           <mainClass>edu.agile.sis.App</mainClass>
         </configuration>
-      </plugin>
-      <!-- JaCoCo coverage plugin -->
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.10</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>report</id>
-            <phase>test</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-          </execution>
-        </executions>
       </plugin>
     </plugins>
   </build>

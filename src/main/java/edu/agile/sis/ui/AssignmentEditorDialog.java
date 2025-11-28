@@ -16,9 +16,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Dialog for creating a new assignment. Minimal UI.
- */
+
 public class AssignmentEditorDialog extends Dialog<String> {
     private final TextField courseField = new TextField();
     private final TextField titleField = new TextField();
