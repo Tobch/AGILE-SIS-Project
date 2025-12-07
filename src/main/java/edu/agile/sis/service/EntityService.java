@@ -11,11 +11,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import org.bson.types.ObjectId;
 
-/**
- * Generic entity service for documents stored in collections such as "students", "staff", "courses", etc.
- * Provides safe merge update for nested `core` document and attributes array.
- */
+
 public class EntityService {
     private final MongoCollection<Document> coll;
 
@@ -24,15 +22,28 @@ public class EntityService {
     }
 
     public Document getEntityById(String entityId) {
-        if (entityId == null) return null;
-        // try matching core.entityId or top-level entityId or _id (string form)
-        Document d = coll.find(Filters.or(
-                Filters.eq("core.entityId", entityId),
-                Filters.eq("entityId", entityId),
-                Filters.eq("_id", entityId)
-        )).first();
-        return d;
+    if (entityId == null || entityId.isBlank()) return null;
+
+    
+    try {
+        ObjectId oid = new ObjectId(entityId);
+        Document d = coll.find(Filters.eq("_id", oid)).first();
+        if (d != null) return d;
+    } catch (IllegalArgumentException ignored) {
+       
     }
+
+
+    Document d = coll.find(Filters.eq("_id", entityId)).first();
+    if (d != null) return d;
+
+
+    return coll.find(Filters.or(
+            Filters.eq("core.entityId", entityId),
+            Filters.eq("entityId", entityId)
+    )).first();
+}
+
 
     public List<Document> getEntitiesByType(String typeName) {
         return coll.find(Filters.eq("type", typeName)).into(new ArrayList<>());
@@ -51,15 +62,6 @@ public class EntityService {
         return true;
     }
 
-    /**
-     * Safely merge updates into existing entity's `core` document and/or replace attributes.
-     *
-     * - coreUpdates: map of keys to values that should be applied into core (only provided keys change)
-     * - attributes: if non-null, replaces entire attributes array with the provided list
-     *
-     * This method fetches the existing doc, merges core values, and writes back full `core` to avoid accidentally
-     * deleting fields such as enrolledSince.
-     */
     public boolean updateEntityMerge(String entityId, Map<String, Object> coreUpdates, List<Document> attributes) {
         Document existing = getEntityById(entityId);
         if (existing == null) return false;
@@ -82,16 +84,43 @@ public class EntityService {
         return res.getModifiedCount() > 0;
     }
 
-    /**
-     * Convenience: replace attributes only, preserves core.
-     */
+ 
     public boolean replaceAttributes(String entityId, List<Document> attributes) {
         return updateEntityMerge(entityId, null, attributes);
     }
+    
+    
+    
+    public String getEntityId(Document doc) {
+    if (doc == null) return null;
 
-    /**
-     * Convenience: update individual core field (single field)
-     */
+
+    String linked = doc.getString("linkedEntityId");
+    if (linked != null && !linked.isBlank()) return linked;
+
+
+    Document core = doc.get("core", Document.class);
+    if (core != null) {
+        String coreId = core.getString("entityId");
+        if (coreId != null && !coreId.isBlank()) return coreId;
+    }
+
+ 
+    Object idObj = doc.get("_id");
+    if (idObj instanceof org.bson.types.ObjectId)
+        return ((org.bson.types.ObjectId) idObj).toHexString();
+
+    return idObj == null ? null : idObj.toString();
+}
+    
+    
+    
+    
+   
+
+
+
+   
     public boolean updateCoreField(String entityId, String key, Object value) {
         return updateEntityMerge(entityId, Map.of(key, value), null);
     }

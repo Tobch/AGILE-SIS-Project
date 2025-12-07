@@ -12,15 +12,12 @@ public class UserService {
         this.userDAO = new UserDAO();
     }
 
-    // Constructor for dependency injection (used in tests)
+
     public UserService(UserDAO userDAO) {
         this.userDAO = userDAO;
     }
 
-    /**
-     * Create user with bcrypt hash for password.
-     * Returns false if username already exists.
-     */
+  
     public boolean createUser(String username, String password, List<String> roles, String linkedEntityId) {
         if (userDAO.findByUsername(username) != null) return false;
         String hashed = BCrypt.hashpw(password, BCrypt.gensalt(12));
@@ -44,5 +41,52 @@ public class UserService {
             return false;
         }
     }
+     
+     
+     
+     
+     
+public org.bson.Document getUserByEntityId(String entityId) {
+    try {
+        return userDAO.findByLinkedEntityId(entityId);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        return null;
+    }
+}
+
+public boolean updateUsernameForEntity(String entityId, String newUsername) {
+    try {
+        return userDAO.updateUserByLinkedEntityId(entityId, newUsername, null);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        return false;
+    }
+}
+
+public boolean updatePasswordForEntity(String entityId, String rawPassword) {
+    try {
+        org.bson.Document user = userDAO.findByLinkedEntityId(entityId);
+        if (user == null) return false;
+        String username = user.getString("username");
+        if (username == null || username.isBlank()) return false;
+        String hashed = org.mindrot.jbcrypt.BCrypt.hashpw(rawPassword, org.mindrot.jbcrypt.BCrypt.gensalt(12));
+        userDAO.updatePassword(username, hashed);
+        return true;
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        return false;
+    }
+}
+
+public boolean deleteUserByEntityId(String entityId) {
+    try {
+        return userDAO.deleteByLinkedEntityId(entityId);
+    } catch (Exception ex) {
+        ex.printStackTrace();
+        return false;
+    }
+}
+
 
 }
