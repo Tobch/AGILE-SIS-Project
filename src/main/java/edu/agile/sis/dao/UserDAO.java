@@ -3,11 +3,16 @@ package edu.agile.sis.dao;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.result.UpdateResult;
 import edu.agile.sis.db.DBConnection;
 import org.bson.Document;
+import org.bson.types.ObjectId;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class UserDAO {
     private final MongoCollection<Document> users;
@@ -15,30 +20,32 @@ public class UserDAO {
     public UserDAO() {
         this.users = DBConnection.getInstance().getDatabase().getCollection("users");
 
-        // Ensure unique index on linkedEntityId (prevents duplicates)
+        
         try {
             users.createIndex(new Document("linkedEntityId", 1), new IndexOptions().unique(true));
         } catch (Exception ignored) {
-            // Index already exists or MongoDB may skip if already unique
+            
         }
     }
 
-    /**
-     * Inserts a new user if no duplicate username or linkedEntityId exists.
-     * Returns false if duplicate found.
-     */
+    
     public boolean insertUser(String username, String passwordHash, List<String> roles, String linkedEntityId) {
-        // Check for duplicates (username OR linkedEntityId)
+        if (username == null || username.isBlank()) return false;
+
+       
+        String normalizedUsername = username.trim();
+
+        
         Document existing = users.find(Filters.or(
-                Filters.eq("username", username),
+                Filters.eq("username", normalizedUsername),
                 Filters.eq("linkedEntityId", linkedEntityId)
         )).first();
 
         if (existing != null) {
-            return false; // prevent duplicate user
+            return false; 
         }
 
-        Document doc = new Document("username", username)
+        Document doc = new Document("username", normalizedUsername)
                 .append("passwordHash", passwordHash)
                 .append("roles", roles)
                 .append("linkedEntityId", linkedEntityId)
@@ -48,7 +55,14 @@ public class UserDAO {
     }
 
     public Document findByUsername(String username) {
+        if (username == null) return null;
         return users.find(Filters.eq("username", username)).first();
+    }
+
+   
+    public Document findByLinkedEntityId(String linkedEntityId) {
+        if (linkedEntityId == null || linkedEntityId.isBlank()) return null;
+        return users.find(Filters.eq("linkedEntityId", linkedEntityId)).first();
     }
 
     public List<Document> findAllUsers() {
@@ -70,10 +84,7 @@ public class UserDAO {
         return result.getDeletedCount() > 0;
     }
 
-    /**
-     * Updates username and roles for a user linked to a specific entity ID.
-     * Returns true if a record was updated.
-     */
+   
     public boolean updateUserByLinkedEntityId(String linkedEntityId, String newUsername, List<String> newRoles) {
         if (linkedEntityId == null || linkedEntityId.isBlank()) return false;
 
@@ -92,5 +103,114 @@ public class UserDAO {
                         .append("$currentDate", new Document("updatedAt", true)));
 
         return result.getModifiedCount() > 0;
+    }
+
+    
+    public List<Document> getStudentsForParent(String parentId) {
+        if (parentId == null || parentId.isBlank()) return new ArrayList<>();
+
+        return users.find(Filters.or(
+                Filters.eq("parentId", parentId),
+                Filters.eq("parentLinkedEntityId", parentId)
+        )).into(new ArrayList<>());
+    }
+    
+    
+    public Map<String, Document> findByLinkedEntityIds(List<String> linkedIds) {
+    if (linkedIds == null || linkedIds.isEmpty()) return Collections.emptyMap();
+    Map<String, Document> out = new HashMap<>();
+    try (var cursor = users.find(Filters.in("linkedEntityId", linkedIds)).iterator()) {
+        while (cursor.hasNext()) {
+            Document d = cursor.next();
+            String lid = d.getString("linkedEntityId");
+            if (lid != null) out.put(lid, d);
+        }
+    } catch (Throwable t) {
+        t.printStackTrace();
+    }
+    return out;
+}
+    
+    
+    
+    
+    
+    
+    
+    
+   
+public int countStudentsWithParent(String parentEntityId) {
+    if (parentEntityId == null || parentEntityId.isBlank()) return 0;
+    try {
+        return (int) users.countDocuments(Filters.eq("parentLinkedEntityId", parentEntityId));
+    } catch (Throwable t) {
+        t.printStackTrace();
+        return 0;
+    }
+}
+
+
+public long unlinkParentFromStudents(String parentEntityId) {
+    if (parentEntityId == null || parentEntityId.isBlank()) return 0L;
+    try {
+        var res = users.updateMany(
+                Filters.eq("parentLinkedEntityId", parentEntityId),
+                new Document("$unset", new Document("parentLinkedEntityId", ""))
+                        .append("$currentDate", new Document("updatedAt", true))
+        );
+        return res.getModifiedCount();
+    } catch (Throwable t) {
+        t.printStackTrace();
+        return 0L;
+    }
+}
+
+
+public List<String> getStudentIdsForParent(String parentEntityId) {
+    List<String> out = new ArrayList<>();
+    if (parentEntityId == null || parentEntityId.isBlank()) return out;
+    try (var cursor = users.find(Filters.eq("parentLinkedEntityId", parentEntityId)).iterator()) {
+        while (cursor.hasNext()) {
+            Document d = cursor.next();
+            String linked = d.getString("linkedEntityId");
+            if (linked != null && !linked.isBlank()) {
+                out.add(linked);
+            } else {
+                ObjectId oid = d.getObjectId("_id");
+                if (oid != null) out.add(oid.toHexString());
+            }
+        }
+    } catch (Throwable t) {
+        t.printStackTrace();
+    }
+    return out;
+}
+
+
+    
+    
+
+    public boolean setParentForStudent(String studentId, String parentLinkedEntityId) {
+        if (studentId == null || studentId.isBlank() || parentLinkedEntityId == null || parentLinkedEntityId.isBlank())
+            return false;
+
+       
+        try {
+            UpdateResult res = users.updateOne(Filters.eq("_id", new ObjectId(studentId)),
+                    new Document("$set", new Document("parentLinkedEntityId", parentLinkedEntityId)
+                            .append("updatedAt", new java.util.Date())));
+            if (res.getModifiedCount() > 0) return true;
+        } catch (IllegalArgumentException ignored) {
+            
+        }
+
+    
+        UpdateResult res2 = users.updateOne(Filters.or(
+                Filters.eq("linkedEntityId", studentId),
+                Filters.eq("_id", studentId)
+        ), new Document("$set", new Document("parentLinkedEntityId", parentLinkedEntityId)
+                .append("updatedAt", new java.util.Date())));
+
+        return res2.getModifiedCount() > 0;
     }
 }

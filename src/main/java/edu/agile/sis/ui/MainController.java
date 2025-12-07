@@ -25,6 +25,9 @@ public class MainController {
         Button studentsBtn      = createMenuButton("🎓", "Manage Students");
         Button reservationsBtn  = createMenuButton("📅", "Room Reservations");
         Button staffBtn         = createMenuButton("👥", "Manage Staff");
+        Button parentsBtn       = createMenuButton("👪", "Manage Parent");
+        Button parentDashboardBtn  = createMenuButton("🏠", "Parent Dashboard");
+        Button parentChatBtn = createMenuButton("📨", "Parent Messages");
         Button coursesBtn       = createMenuButton("📚", "Courses");
         Button assignmentsBtn   = createMenuButton("📝", "Assignments");
         Button quizzesBtn       = createMenuButton("❓", "Quizzes");
@@ -39,6 +42,13 @@ public class MainController {
         studentsBtn.setOnAction(e -> view.setCenter(new StudentsController().getView()));
         reservationsBtn.setOnAction(e -> view.setCenter(new ReservationsController().getView()));
         staffBtn.setOnAction(e -> view.setCenter(new StaffController().getView()));
+        parentsBtn.setOnAction(e -> view.setCenter(new ParentRegistrationPane()));
+       
+ parentChatBtn.setOnAction(e -> 
+        view.setCenter(new ParentMessagesController().getView())
+);
+
+        parentDashboardBtn.setOnAction(e -> view.setCenter(new ParentDashboardPane()));
         coursesBtn.setOnAction(e -> view.setCenter(new CoursesController().getView()));
         assignmentsBtn.setOnAction(e -> view.setCenter(new AssignmentsController().getView()));
         quizzesBtn.setOnAction(e -> view.setCenter(new QuizzesController().getView()));
@@ -61,6 +71,8 @@ public class MainController {
         boolean isTA    = AuthSession.getInstance().hasRole("TA");
         boolean isStaffGeneric = AuthSession.getInstance().hasRole("Staff") || AuthSession.getInstance().hasRole("Lecturer");
         boolean isStudent = AuthSession.getInstance().hasRole("Student");
+        boolean isParent  = AuthSession.getInstance().hasRole("parent")
+                                || AuthSession.getInstance().hasRole("Parent");
 
      
         if (isAdmin) {
@@ -68,6 +80,7 @@ public class MainController {
             sidebar.getChildren().addAll(
                     studentsBtn,
                     staffBtn,
+                    parentsBtn,
                     coursesBtn,
                     reservationsBtn,
                     payrollBtn,
@@ -79,7 +92,6 @@ public class MainController {
         } else if (isProf || isTA || isStaffGeneric) {
           
             sidebar.getChildren().addAll(
-                    myProfileBtn,
                     coursesBtn,
                     reservationsBtn,
                     payrollBtn,
@@ -98,7 +110,18 @@ public class MainController {
                     quizzesBtn,
                     messagesBtn
             );
-        } else {
+        } else if (isParent) {
+     
+            sidebar.getChildren().addAll(
+                    parentDashboardBtn,
+                    parentChatBtn
+                    
+                   
+            );
+        
+        
+        
+        }else {
 
             sidebar.getChildren().addAll(
                     myProfileBtn,

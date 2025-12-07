@@ -1,6 +1,6 @@
 package edu.agile.sis.service;
 
-//import edu.agile.sis.dao.CourseDAO;
+
 import edu.agile.sis.dao.StaffDAO;
 import org.bson.Document;
 
@@ -8,7 +8,7 @@ import java.util.List;
 
 public class StaffService {
     private final StaffDAO dao = new StaffDAO();
-    //private final CourseDAO courseDAO = new CourseDAO();
+
 
     public void createStaff(Document staff) {
         dao.insertStaff(staff);
