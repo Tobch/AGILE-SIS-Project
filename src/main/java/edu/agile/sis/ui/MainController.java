@@ -32,6 +32,7 @@ public class MainController {
         Button assignmentsBtn = createMenuButton("📝", "Assignments");
         Button quizzesBtn = createMenuButton("❓", "Quizzes");
         Button messagesBtn = createMenuButton("💬", "Messages");
+        Button announcementsBtn = createMenuButton("📢", "Announcements & Events");
         Button eavBtn = createMenuButton("⚙️", "EAV Admin");
         Button payrollBtn = createMenuButton("💵", "Payroll");
         Button leaveBtn = createMenuButton("🏖️", "Leave Requests");
@@ -52,6 +53,7 @@ public class MainController {
         assignmentsBtn.setOnAction(e -> view.setCenter(new AssignmentsController().getView()));
         quizzesBtn.setOnAction(e -> view.setCenter(new QuizzesController().getView()));
         messagesBtn.setOnAction(e -> view.setCenter(new MessagesController().getView()));
+        announcementsBtn.setOnAction(e ->view.setCenter(new AnnouncementsController().getView()));
         eavBtn.setOnAction(e -> view.setCenter(new EavAdminController().getView()));
 
         payrollBtn.setOnAction(e -> view.setCenter(new PayrollController().getView()));
@@ -89,6 +91,7 @@ public class MainController {
                     leaveBtn,
                     benefitsBtn,
                     messagesBtn,
+                    announcementsBtn,
                     eavBtn);
         } else if (isProf || isTA || isStaffGeneric) {
 
@@ -101,6 +104,7 @@ public class MainController {
                     benefitsBtn,
                     assignmentsBtn,
                     quizzesBtn,
+                    announcementsBtn,
                     messagesBtn);
         } else if (isStudent) {
 
@@ -109,11 +113,13 @@ public class MainController {
                     coursesBtn,
                     assignmentsBtn,
                     quizzesBtn,
+                    announcementsBtn,
                     messagesBtn);
         } else if (isParent) {
 
             sidebar.getChildren().addAll(
                     parentDashboardBtn,
+                    announcementsBtn,
                     parentChatBtn
 
             );
@@ -123,6 +129,7 @@ public class MainController {
             sidebar.getChildren().addAll(
                     myProfileBtn,
                     coursesBtn,
+                    announcementsBtn,
                     messagesBtn);
         }
 
