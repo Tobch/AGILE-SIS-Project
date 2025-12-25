@@ -40,4 +40,14 @@ public class EventDAO {
         try { return coll.find(new Document("_id", new ObjectId(idHex))).first(); }
         catch (Exception ex) { return coll.find(new Document("_id", idHex)).first(); }
     }
+
+    public boolean update(String idHex, Document updates) {
+    try {
+        coll.updateOne(new Document("_id", new ObjectId(idHex)), new Document("$set", updates));
+        return true;
+    } catch (Exception ex) {
+        coll.updateOne(new Document("_id", idHex), new Document("$set", updates));
+        return true;
+    }
+}
 }

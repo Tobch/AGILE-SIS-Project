@@ -122,6 +122,19 @@ public class AnnouncementsController {
                 }
 
                 box.getChildren().add(lblBody);
+
+                // Add Edit button (only for admins)
+                if (AuthSession.getInstance().hasRole("Admin")) {
+                    Button editBtn = new Button("Edit");
+                    editBtn.setOnAction(e -> {
+                        EditAnnouncementDialog dlg = new EditAnnouncementDialog(item);
+                        dlg.showAndWait().ifPresent(success -> {
+                            if (success) refreshFeed();
+                        });
+                    });
+                    box.getChildren().add(editBtn);
+                }
+
                 setGraphic(box);
             }
         });

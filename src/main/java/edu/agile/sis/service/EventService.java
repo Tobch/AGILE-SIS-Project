@@ -42,4 +42,11 @@ public class EventService {
     public Document getEventById(String id) {
         return eventDAO.findById(id);
     }
+
+    /**
+ * Update an existing event
+ */
+public boolean updateEvent(String id, Document updates) {
+    return eventDAO.update(id, updates);
+}
 }
