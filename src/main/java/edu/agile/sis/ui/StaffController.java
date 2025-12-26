@@ -14,6 +14,8 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import org.bson.Document;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -50,23 +52,28 @@ public class StaffController {
 
         // === Table Columns ===
         TableColumn<Document, String> idCol = new TableColumn<>("Staff ID");
-        idCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("staffId")));
+        idCol.setCellValueFactory(
+                c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("staffId")));
         idCol.setPrefWidth(110);
 
         TableColumn<Document, String> nameCol = new TableColumn<>("Name");
-        nameCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("name")));
+        nameCol.setCellValueFactory(
+                c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("name")));
         nameCol.setPrefWidth(180);
 
         TableColumn<Document, String> emailCol = new TableColumn<>("Email");
-        emailCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("email")));
+        emailCol.setCellValueFactory(
+                c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("email")));
         emailCol.setPrefWidth(200);
 
         TableColumn<Document, String> officeCol = new TableColumn<>("Office Hours");
-        officeCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("officeHours")));
+        officeCol.setCellValueFactory(
+                c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("officeHours")));
         officeCol.setPrefWidth(160);
 
         TableColumn<Document, String> roleCol = new TableColumn<>("Role");
-        roleCol.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("role")));
+        roleCol.setCellValueFactory(
+                c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getString("role")));
         roleCol.setPrefWidth(120);
 
         table.getColumns().addAll(idCol, nameCol, emailCol, officeCol, roleCol);
@@ -94,7 +101,18 @@ public class StaffController {
         delBtn.setOnAction(e -> handleDelete());
         refreshBtn.setOnAction(e -> load());
 
-        HBox controls = new HBox(10, addBtn, viewBtn, delBtn, refreshBtn);
+        // View Publications button (for professors)
+        Button viewPubsBtn = new Button("📄 View Publications");
+        viewPubsBtn.setStyle(btnStyle("#6f42c1"));
+        viewPubsBtn.setOnAction(e -> {
+            Document sel = table.getSelectionModel().getSelectedItem();
+            if (sel == null && !items.isEmpty())
+                sel = items.get(0);
+            if (sel != null)
+                showPublications(sel);
+        });
+
+        HBox controls = new HBox(10, addBtn, viewBtn, viewPubsBtn, delBtn, refreshBtn);
         controls.setAlignment(Pos.CENTER_LEFT);
         controls.setPadding(new Insets(8, 0, 8, 0));
 
@@ -109,13 +127,13 @@ public class StaffController {
 
     private String btnStyle(String color) {
         return String.format("""
-            -fx-background-color: %s;
-            -fx-text-fill: white;
-            -fx-font-weight: bold;
-            -fx-background-radius: 6;
-            -fx-cursor: hand;
-            -fx-padding: 6 14 6 14;
-            """, color);
+                -fx-background-color: %s;
+                -fx-text-fill: white;
+                -fx-font-weight: bold;
+                -fx-background-radius: 6;
+                -fx-cursor: hand;
+                -fx-padding: 6 14 6 14;
+                """, color);
     }
 
     // ================= Existing Logic Preserved =================
@@ -157,18 +175,23 @@ public class StaffController {
         items.clear();
         if (isAdmin) {
             List<Document> list = staffService.listAll();
-            if (list != null) items.addAll(list);
+            if (list != null)
+                items.addAll(list);
         } else if (isProfessor || isTA) {
             String lookupId = linkedStaffId != null && !linkedStaffId.isBlank()
-                    ? linkedStaffId : AuthSession.getInstance().getUsername();
+                    ? linkedStaffId
+                    : AuthSession.getInstance().getUsername();
 
             Document me = staffService.getByStaffId(lookupId);
-            if (me != null) items.add(me);
-            else new Alert(Alert.AlertType.WARNING,
-                    "No staff record found for your account (ID: " + lookupId + "). Contact admin.").showAndWait();
+            if (me != null)
+                items.add(me);
+            else
+                new Alert(Alert.AlertType.WARNING,
+                        "No staff record found for your account (ID: " + lookupId + "). Contact admin.").showAndWait();
         } else {
             List<Document> list = staffService.listAll();
-            if (list != null) items.addAll(list);
+            if (list != null)
+                items.addAll(list);
         }
     }
 
@@ -185,118 +208,116 @@ public class StaffController {
         }
         viewEditStaff(selected);
     }
-    
-    
-    
-    
+
     private void addStaff() {
-    Dialog<Document> dlg = new Dialog<>();
-    dlg.setTitle("Add New Staff");
-    dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        Dialog<Document> dlg = new Dialog<>();
+        dlg.setTitle("Add New Staff");
+        dlg.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-    GridPane g = new GridPane();
-    g.setHgap(8);
-    g.setVgap(8);
-    g.setPadding(new Insets(10));
+        GridPane g = new GridPane();
+        g.setHgap(8);
+        g.setVgap(8);
+        g.setPadding(new Insets(10));
 
-    TextField staffId = new TextField();
-    staffId.setPromptText("e.g., S1001");
+        TextField staffId = new TextField();
+        staffId.setPromptText("e.g., S1001");
 
-    TextField name = new TextField();
-    name.setPromptText("Full Name (used for login)");
+        TextField name = new TextField();
+        name.setPromptText("Full Name (used for login)");
 
-    TextField email = new TextField();
-    TextField office = new TextField();
+        TextField email = new TextField();
+        TextField office = new TextField();
 
-    PasswordField password = new PasswordField();
-    password.setPromptText("Initial password (default 1234)");
+        PasswordField password = new PasswordField();
+        password.setPromptText("Initial password (default 1234)");
 
-    ComboBox<String> roleBox = new ComboBox<>();
-    roleBox.getItems().addAll("Professor", "TA");
-    roleBox.setValue("Professor");
+        ComboBox<String> roleBox = new ComboBox<>();
+        roleBox.getItems().addAll("Professor", "TA");
+        roleBox.setValue("Professor");
 
-    g.add(new Label("Staff ID:"), 0, 0); g.add(staffId, 1, 0);
-    g.add(new Label("Full Name (Login Username):"), 0, 1); g.add(name, 1, 1);
-    g.add(new Label("Email:"), 0, 2); g.add(email, 1, 2);
-    g.add(new Label("Office Hours:"), 0, 3); g.add(office, 1, 3);
-    g.add(new Label("Initial Password:"), 0, 4); g.add(password, 1, 4);
-    g.add(new Label("Role:"), 0, 5); g.add(roleBox, 1, 5);
+        g.add(new Label("Staff ID:"), 0, 0);
+        g.add(staffId, 1, 0);
+        g.add(new Label("Full Name (Login Username):"), 0, 1);
+        g.add(name, 1, 1);
+        g.add(new Label("Email:"), 0, 2);
+        g.add(email, 1, 2);
+        g.add(new Label("Office Hours:"), 0, 3);
+        g.add(office, 1, 3);
+        g.add(new Label("Initial Password:"), 0, 4);
+        g.add(password, 1, 4);
+        g.add(new Label("Role:"), 0, 5);
+        g.add(roleBox, 1, 5);
 
-    dlg.getDialogPane().setContent(g);
+        dlg.getDialogPane().setContent(g);
 
-    dlg.setResultConverter(btn -> {
-        if (btn == ButtonType.OK) {
-            String role = roleBox.getValue();
-            String sid = staffId.getText().trim();
-            String fullName = name.getText().trim();
-            String pass = password.getText().isBlank() ? "1234" : password.getText().trim();
+        dlg.setResultConverter(btn -> {
+            if (btn == ButtonType.OK) {
+                String role = roleBox.getValue();
+                String sid = staffId.getText().trim();
+                String fullName = name.getText().trim();
+                String pass = password.getText().isBlank() ? "1234" : password.getText().trim();
 
-            if (sid.isEmpty() || fullName.isEmpty()) {
-                new Alert(Alert.AlertType.WARNING, "Staff ID and Full Name are required!").showAndWait();
-                return null;
+                if (sid.isEmpty() || fullName.isEmpty()) {
+                    new Alert(Alert.AlertType.WARNING, "Staff ID and Full Name are required!").showAndWait();
+                    return null;
+                }
+
+                return new Document("staffId", sid)
+                        .append("name", fullName)
+                        .append("email", email.getText().trim())
+                        .append("officeHours", office.getText().trim())
+                        .append("createdAt", new java.util.Date())
+                        .append("role", role)
+                        .append("username", fullName)
+                        .append("password", pass);
             }
+            return null;
+        });
 
-            return new Document("staffId", sid)
-                    .append("name", fullName)
-                    .append("email", email.getText().trim())
-                    .append("officeHours", office.getText().trim())
-                    .append("createdAt", new java.util.Date())
-                    .append("role", role)
-                    .append("username", fullName)
-                    .append("password", pass);
-        }
-        return null;
-    });
+        dlg.showAndWait().ifPresent(doc -> {
+            try {
+                String staffIdVal = doc.getString("staffId");
 
-    dlg.showAndWait().ifPresent(doc -> {
-        try {
-            String staffIdVal = doc.getString("staffId");
+                Document existing = staffService.getByStaffId(staffIdVal);
+                if (existing != null) {
+                    new Alert(Alert.AlertType.WARNING,
+                            "⚠️ A staff record with this ID already exists!").showAndWait();
+                    return;
+                }
 
-          
-            Document existing = staffService.getByStaffId(staffIdVal);
-            if (existing != null) {
-                new Alert(Alert.AlertType.WARNING,
-                        "⚠️ A staff record with this ID already exists!").showAndWait();
-                return;
+                UserService userService = new UserService();
+                if (userService.deleteUserByLinkedEntityId(staffIdVal)) {
+                    new Alert(Alert.AlertType.WARNING,
+                            "⚠️ A user account linked to this staff ID already exists!").showAndWait();
+                    return;
+                }
+
+                staffService.createStaff(doc);
+
+                boolean userCreated = userService.createUser(
+                        doc.getString("username"),
+                        doc.getString("password"),
+                        List.of(doc.getString("role")),
+                        doc.getString("staffId"));
+
+                if (userCreated) {
+                    new Alert(Alert.AlertType.INFORMATION,
+                            "✅ Staff and linked user account created successfully!").showAndWait();
+                } else {
+                    // rollback staff record to prevent orphan entry
+                    staffService.deleteByStaffId(staffIdVal);
+                    new Alert(Alert.AlertType.WARNING,
+                            "⚠️ User account already exists — staff creation rolled back.").showAndWait();
+                }
+
+                load();
+
+            } catch (Exception ex) {
+                new Alert(Alert.AlertType.ERROR, "❌ Error: " + ex.getMessage()).showAndWait();
+                ex.printStackTrace();
             }
-
-            UserService userService = new UserService();
-            if (userService.deleteUserByLinkedEntityId(staffIdVal)) {
-                new Alert(Alert.AlertType.WARNING,
-                        "⚠️ A user account linked to this staff ID already exists!").showAndWait();
-                return;
-            }
-
-          
-            staffService.createStaff(doc);
-
-        
-            boolean userCreated = userService.createUser(
-                    doc.getString("username"),
-                    doc.getString("password"),
-                    List.of(doc.getString("role")),
-                    doc.getString("staffId")
-            );
-
-            if (userCreated) {
-                new Alert(Alert.AlertType.INFORMATION,
-                        "✅ Staff and linked user account created successfully!").showAndWait();
-            } else {
-                // rollback staff record to prevent orphan entry
-                staffService.deleteByStaffId(staffIdVal);
-                new Alert(Alert.AlertType.WARNING,
-                        "⚠️ User account already exists — staff creation rolled back.").showAndWait();
-            }
-
-            load();
-
-        } catch (Exception ex) {
-            new Alert(Alert.AlertType.ERROR, "❌ Error: " + ex.getMessage()).showAndWait();
-            ex.printStackTrace();
-        }
-    });
-}
-
+        });
+    }
 
     /** View/edit existing staff profile and sync with user account */
     private void viewEditStaff(Document doc) {
@@ -316,10 +337,14 @@ public class StaffController {
         roleBox.getItems().addAll("Professor", "TA");
         roleBox.setValue(doc.getString("role") != null ? doc.getString("role") : "Professor");
 
-        g.add(new Label("Full Name (Login Username):"), 0, 0); g.add(name, 1, 0);
-        g.add(new Label("Email:"), 0, 1); g.add(email, 1, 1);
-        g.add(new Label("Office Hours:"), 0, 2); g.add(office, 1, 2);
-        g.add(new Label("Role:"), 0, 3); g.add(roleBox, 1, 3);
+        g.add(new Label("Full Name (Login Username):"), 0, 0);
+        g.add(name, 1, 0);
+        g.add(new Label("Email:"), 0, 1);
+        g.add(email, 1, 1);
+        g.add(new Label("Office Hours:"), 0, 2);
+        g.add(office, 1, 2);
+        g.add(new Label("Role:"), 0, 3);
+        g.add(roleBox, 1, 3);
 
         dlg.getDialogPane().setContent(g);
 
@@ -337,7 +362,7 @@ public class StaffController {
                 }
 
                 try {
-                  
+
                     Document updated = new Document("name", newName)
                             .append("email", newEmail)
                             .append("officeHours", newOffice)
@@ -348,8 +373,7 @@ public class StaffController {
                     // 2️⃣ Sync user info (username + role)
                     UserService userService = new UserService();
                     boolean userUpdated = userService.updateUserByLinkedEntityId(
-                            staffId, newName, List.of(newRole)
-                    );
+                            staffId, newName, List.of(newRole));
 
                     // 3️⃣ Success message
                     String msg = "✅ Staff record updated successfully.";
@@ -371,6 +395,62 @@ public class StaffController {
         });
     }
 
+    /** Show publications for a faculty member */
+    private void showPublications(Document staffDoc) {
+        String staffId = staffDoc.getString("staffId");
+        String staffName = staffDoc.getString("name");
+
+        edu.agile.sis.service.PublicationService pubService = new edu.agile.sis.service.PublicationService();
+        List<Document> publications = pubService.getPublishedByAuthor(staffId);
+
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Publications");
+        dialog.setHeaderText("📄 Publications by " + staffName);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(600);
+        dialog.getDialogPane().setPrefHeight(400);
+
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(15));
+
+        if (publications.isEmpty()) {
+            Label noData = new Label("No published research papers found.");
+            noData.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 14px;");
+            content.getChildren().add(noData);
+        } else {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy");
+            for (Document pub : publications) {
+                String title = pub.getString("title");
+                String type = pub.getString("publicationType");
+                String venue = pub.getString("venue");
+                Date pubDate = pub.get("publicationDate", Date.class);
+                String year = pubDate != null ? sdf.format(pubDate) : "";
+
+                VBox pubCard = new VBox(3);
+                pubCard.setStyle("-fx-background-color: #f8f9fa; -fx-padding: 10; -fx-background-radius: 5;");
+
+                Label titleLabel = new Label(title);
+                titleLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+                titleLabel.setWrapText(true);
+
+                String details = type;
+                if (venue != null && !venue.isEmpty())
+                    details += " • " + venue;
+                if (!year.isEmpty())
+                    details += " (" + year + ")";
+                Label detailsLabel = new Label(details);
+                detailsLabel.setStyle("-fx-text-fill: #6c757d;");
+
+                pubCard.getChildren().addAll(titleLabel, detailsLabel);
+                content.getChildren().add(pubCard);
+            }
+        }
+
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        dialog.getDialogPane().setContent(scroll);
+        dialog.showAndWait();
+    }
 
     public VBox getView() {
         return view;

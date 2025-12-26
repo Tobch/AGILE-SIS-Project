@@ -49,8 +49,12 @@ public class InventoryDAO {
         return inventory.find(Filters.eq("itemType", itemType)).into(new ArrayList<>());
     }
 
-    public List<Document> findByDepartment(String departmentId) {
-        return inventory.find(Filters.eq("departmentId", departmentId)).into(new ArrayList<>());
+    /**
+     * Find items where the given userId is in the assignedUsers array (for
+     * licenses).
+     */
+    public List<Document> findByUserInAssignedUsers(String userId) {
+        return inventory.find(Filters.eq("assignedUsers.userId", userId)).into(new ArrayList<>());
     }
 
     public UpdateResult updateItem(String itemId, Document updatedData) {

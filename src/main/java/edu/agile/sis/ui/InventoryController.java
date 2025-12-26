@@ -15,14 +15,19 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * JavaFX Controller for Inventory/Resource Management.
+ * JavaFX Controller for Inventory/Resource Management (Admin View).
  * Allows viewing, creating, editing, and allocating inventory items.
+ * Also handles pending request approvals.
+ * 
+ * - Laptop/Equipment: Single user assignment
+ * - License: Multi-user assignment
  */
 public class InventoryController {
     private final VBox view = new VBox(20);
     private final InventoryService inventoryService = new InventoryService();
 
     private TableView<Document> table;
+    private TableView<Document> requestsTable;
     private ObservableList<Document> allItems = FXCollections.observableArrayList();
     private ObservableList<Document> displayedItems = FXCollections.observableArrayList();
 
@@ -41,9 +46,39 @@ public class InventoryController {
         view.setStyle("-fx-background-color: #f4f6f7;");
 
         // Header
-        Label header = new Label("📦 Resource & Equipment Inventory");
+        Label header = new Label("📦 Inventory Management (Admin)");
         header.setFont(Font.font("System", FontWeight.BOLD, 24));
         header.setStyle("-fx-text-fill: #2c3e50;");
+
+        // Tab Pane
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
+
+        Tab itemsTab = new Tab("📦 All Items");
+        itemsTab.setContent(createItemsTab());
+
+        Tab requestsTab = new Tab("📋 Pending Requests");
+        requestsTab.setContent(createPendingRequestsTab());
+
+        tabPane.getTabs().addAll(itemsTab, requestsTab);
+        VBox.setVgrow(tabPane, Priority.ALWAYS);
+
+        // Card wrapper
+        VBox card = new VBox(tabPane);
+        card.setPadding(new Insets(20));
+        card.setStyle("-fx-background-color: white; -fx-background-radius: 10; " +
+                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 2);");
+        VBox.setVgrow(card, Priority.ALWAYS);
+
+        view.getChildren().addAll(header, card);
+
+        loadItems();
+        loadPendingRequests();
+    }
+
+    private VBox createItemsTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(15));
 
         // Filters Row
         HBox filtersRow = createFiltersRow();
@@ -59,17 +94,135 @@ public class InventoryController {
         // Action Buttons
         HBox actionButtons = createActionButtons();
 
-        // Card wrapper
-        VBox card = new VBox(15, filtersRow, table, pagingControls, actionButtons);
-        card.setPadding(new Insets(20));
-        card.setStyle("-fx-background-color: white; -fx-background-radius: 10; " +
-                "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.1), 10, 0, 0, 2);");
-        VBox.setVgrow(card, Priority.ALWAYS);
-
-        view.getChildren().addAll(header, card);
-
-        loadItems();
+        content.getChildren().addAll(filtersRow, table, pagingControls, actionButtons);
+        VBox.setVgrow(content, Priority.ALWAYS);
+        return content;
     }
+
+    @SuppressWarnings("unchecked")
+    private VBox createPendingRequestsTab() {
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(15));
+
+        Label info = new Label("Review and process pending requests from staff and students.");
+        info.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 13px;");
+        info.setWrapText(true);
+
+        requestsTable = new TableView<>();
+
+        TableColumn<Document, String> requesterCol = new TableColumn<>("Requester");
+        requesterCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                safeGetString(data.getValue(), "requesterName") + " (" + safeGetString(data.getValue(), "requesterType")
+                        + ")"));
+        requesterCol.setPrefWidth(180);
+
+        TableColumn<Document, String> itemCol = new TableColumn<>("Item");
+        itemCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                safeGetString(data.getValue(), "itemName")));
+        itemCol.setPrefWidth(180);
+
+        TableColumn<Document, String> typeCol = new TableColumn<>("Type");
+        typeCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                safeGetString(data.getValue(), "itemType")));
+        typeCol.setPrefWidth(80);
+
+        TableColumn<Document, String> dateCol = new TableColumn<>("Request Date");
+        dateCol.setCellValueFactory(data -> {
+            Date d = safeGetDate(data.getValue(), "requestDate");
+            return new javafx.beans.property.SimpleStringProperty(d != null ? dateFormat.format(d) : "—");
+        });
+        dateCol.setPrefWidth(130);
+
+        TableColumn<Document, String> notesCol = new TableColumn<>("Requester Notes");
+        notesCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty(
+                safeGetString(data.getValue(), "notes")));
+        notesCol.setPrefWidth(200);
+
+        requestsTable.getColumns().addAll(requesterCol, itemCol, typeCol, dateCol, notesCol);
+        VBox.setVgrow(requestsTable, Priority.ALWAYS);
+
+        // Action buttons
+        Button approveBtn = styledButton("✅ Approve", "#27ae60");
+        approveBtn.setOnAction(e -> handleApproveRequest());
+
+        Button rejectBtn = styledButton("❌ Reject", "#e74c3c");
+        rejectBtn.setOnAction(e -> handleRejectRequest());
+
+        Button refreshBtn = styledButton("🔄 Refresh", "#3498db");
+        refreshBtn.setOnAction(e -> loadPendingRequests());
+
+        HBox buttons = new HBox(10, approveBtn, rejectBtn, refreshBtn);
+        buttons.setAlignment(Pos.CENTER_LEFT);
+
+        content.getChildren().addAll(info, requestsTable, buttons);
+        VBox.setVgrow(content, Priority.ALWAYS);
+        return content;
+    }
+
+    private void loadPendingRequests() {
+        try {
+            List<Document> requests = inventoryService.getPendingRequests();
+            requestsTable.setItems(FXCollections.observableArrayList(requests));
+        } catch (Exception e) {
+            // Admin check failed or other error - just show empty
+            requestsTable.setItems(FXCollections.observableArrayList());
+        }
+    }
+
+    private void handleApproveRequest() {
+        Document selected = requestsTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "Please select a request to approve.");
+            return;
+        }
+
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Approve Request");
+        dialog.setHeaderText("Approve request from: " + safeGetString(selected, "requesterName"));
+        dialog.setContentText("Admin notes (optional):");
+
+        dialog.showAndWait().ifPresent(notes -> {
+            try {
+                String requestId = getIdString(selected);
+                inventoryService.approveRequest(requestId, notes);
+                showAlert(Alert.AlertType.INFORMATION, "Request approved! Item has been assigned.");
+                loadPendingRequests();
+                loadItems();
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Error: " + e.getMessage());
+            }
+        });
+    }
+
+    private void handleRejectRequest() {
+        Document selected = requestsTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showAlert(Alert.AlertType.WARNING, "Please select a request to reject.");
+            return;
+        }
+
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Reject Request");
+        dialog.setHeaderText("Reject request from: " + safeGetString(selected, "requesterName"));
+        dialog.setContentText("Reason for rejection:");
+
+        dialog.showAndWait().ifPresent(reason -> {
+            if (reason.trim().isEmpty()) {
+                showAlert(Alert.AlertType.WARNING, "Please provide a reason for rejection.");
+                return;
+            }
+            try {
+                String requestId = getIdString(selected);
+                inventoryService.rejectRequest(requestId, reason);
+                showAlert(Alert.AlertType.INFORMATION, "Request rejected.");
+                loadPendingRequests();
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Error: " + e.getMessage());
+            }
+        });
+    }
+
+    // ========== Original Items Tab Methods ==========
 
     private HBox createFiltersRow() {
         searchField = new TextField();
@@ -132,15 +285,27 @@ public class InventoryController {
 
         TableColumn<Document, String> assignedCol = new TableColumn<>("Assigned To");
         assignedCol.setCellValueFactory(data -> {
-            String name = safeGetString(data.getValue(), "assignedToName");
-            return new javafx.beans.property.SimpleStringProperty(name.isEmpty() ? "—" : name);
+            Document doc = data.getValue();
+            String itemType = safeGetString(doc, "itemType");
+
+            if ("License".equals(itemType)) {
+                // For licenses, show count of assigned users
+                @SuppressWarnings("unchecked")
+                List<Document> users = doc.get("assignedUsers", List.class);
+                if (users != null && !users.isEmpty()) {
+                    if (users.size() == 1) {
+                        return new javafx.beans.property.SimpleStringProperty(users.get(0).getString("userName"));
+                    }
+                    return new javafx.beans.property.SimpleStringProperty(users.size() + " users");
+                }
+                return new javafx.beans.property.SimpleStringProperty("—");
+            } else {
+                // For Laptop/Equipment, show single user
+                String name = safeGetString(doc, "assignedToName");
+                return new javafx.beans.property.SimpleStringProperty(name.isEmpty() ? "—" : name);
+            }
         });
         assignedCol.setPrefWidth(150);
-
-        TableColumn<Document, String> deptCol = new TableColumn<>("Department");
-        deptCol.setCellValueFactory(
-                data -> new javafx.beans.property.SimpleStringProperty(safeGetString(data.getValue(), "departmentId")));
-        deptCol.setPrefWidth(120);
 
         TableColumn<Document, String> dateCol = new TableColumn<>("Purchase Date");
         dateCol.setCellValueFactory(data -> {
@@ -149,7 +314,7 @@ public class InventoryController {
         });
         dateCol.setPrefWidth(130);
 
-        table.getColumns().addAll(nameCol, typeCol, statusCol, assignedCol, deptCol, dateCol);
+        table.getColumns().addAll(nameCol, typeCol, statusCol, assignedCol, dateCol);
         table.setItems(displayedItems);
         table.setRowFactory(tv -> {
             TableRow<Document> row = new TableRow<>();
@@ -286,9 +451,6 @@ public class InventoryController {
         typeCombo.getItems().addAll("Laptop", "License", "Equipment");
         typeCombo.setValue("Laptop");
 
-        TextField deptField = new TextField();
-        deptField.setPromptText("e.g., IT Department");
-
         TextArea notesArea = new TextArea();
         notesArea.setPromptText("Optional notes...");
         notesArea.setPrefRowCount(3);
@@ -297,10 +459,8 @@ public class InventoryController {
         grid.add(nameField, 1, 0);
         grid.add(new Label("Type:"), 0, 1);
         grid.add(typeCombo, 1, 1);
-        grid.add(new Label("Department:"), 0, 2);
-        grid.add(deptField, 1, 2);
-        grid.add(new Label("Notes:"), 0, 3);
-        grid.add(notesArea, 1, 3);
+        grid.add(new Label("Notes:"), 0, 2);
+        grid.add(notesArea, 1, 2);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -312,8 +472,7 @@ public class InventoryController {
                     return null;
                 }
                 try {
-                    inventoryService.createItem(name, typeCombo.getValue(),
-                            deptField.getText().trim(), notesArea.getText().trim());
+                    inventoryService.createItem(name, typeCombo.getValue(), notesArea.getText().trim());
                     showAlert(Alert.AlertType.INFORMATION, "Item created successfully!");
                     loadItems();
                 } catch (Exception e) {
@@ -333,16 +492,26 @@ public class InventoryController {
             return;
         }
 
-        if ("Assigned".equals(safeGetString(selected, "status"))) {
-            showAlert(Alert.AlertType.WARNING, "Item is already assigned to: " +
-                    safeGetString(selected, "assignedToName"));
-            return;
-        }
+        String itemType = safeGetString(selected, "itemType");
 
-        // Simple dialog to enter user info
+        if ("License".equals(itemType)) {
+            // For licenses, show multi-user management dialog
+            showLicenseUsersDialog(selected);
+        } else {
+            // For Laptop/Equipment, use single-user assignment
+            if ("Assigned".equals(safeGetString(selected, "status"))) {
+                showAlert(Alert.AlertType.WARNING, "Item is already assigned to: " +
+                        safeGetString(selected, "assignedToName"));
+                return;
+            }
+            showSingleUserAssignDialog(selected);
+        }
+    }
+
+    private void showSingleUserAssignDialog(Document item) {
         Dialog<String[]> dialog = new Dialog<>();
         dialog.setTitle("Assign Item");
-        dialog.setHeaderText("Assign: " + safeGetString(selected, "name"));
+        dialog.setHeaderText("Assign: " + safeGetString(item, "name"));
 
         ButtonType assignType = new ButtonType("Assign", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(assignType, ButtonType.CANCEL);
@@ -353,14 +522,18 @@ public class InventoryController {
         grid.setPadding(new Insets(20));
 
         TextField userIdField = new TextField();
-        userIdField.setPromptText("User ID");
+        userIdField.setPromptText("Entity ID (e.g., STU-001)");
         TextField userNameField = new TextField();
-        userNameField.setPromptText("User Name (display)");
+        userNameField.setPromptText("Full Name");
+
+        Label infoLabel = new Label("⚠️ User ID and Name must match a person in the system.");
+        infoLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 11px;");
 
         grid.add(new Label("User ID:"), 0, 0);
         grid.add(userIdField, 1, 0);
         grid.add(new Label("User Name:"), 0, 1);
         grid.add(userNameField, 1, 1);
+        grid.add(infoLabel, 0, 2, 2, 1);
 
         dialog.getDialogPane().setContent(grid);
 
@@ -377,19 +550,151 @@ public class InventoryController {
                 return;
             }
             try {
-                inventoryService.allocateItem(getIdString(selected), result[0], result[1]);
+                inventoryService.allocateItem(getIdString(item), result[0], result[1]);
                 showAlert(Alert.AlertType.INFORMATION, "Item assigned successfully!");
                 loadItems();
+            } catch (IllegalArgumentException e) {
+                showAlert(Alert.AlertType.ERROR, "Validation Error: " + e.getMessage());
+            } catch (IllegalStateException e) {
+                showAlert(Alert.AlertType.WARNING, e.getMessage());
             } catch (Exception e) {
                 showAlert(Alert.AlertType.ERROR, "Error: " + e.getMessage());
             }
         });
     }
 
+    @SuppressWarnings("unchecked")
+    private void showLicenseUsersDialog(Document license) {
+        Dialog<Void> dialog = new Dialog<>();
+        dialog.setTitle("Manage License Users");
+        dialog.setHeaderText("License: " + safeGetString(license, "name"));
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        dialog.getDialogPane().setPrefWidth(500);
+
+        VBox content = new VBox(15);
+        content.setPadding(new Insets(15));
+
+        // Current users list
+        Label usersLabel = new Label("Assigned Users:");
+        usersLabel.setStyle("-fx-font-weight: bold;");
+
+        VBox usersList = new VBox(5);
+        List<Document> assignedUsers = license.get("assignedUsers", List.class);
+        if (assignedUsers == null) {
+            assignedUsers = new ArrayList<>();
+        }
+
+        if (assignedUsers.isEmpty()) {
+            usersList.getChildren().add(new Label("No users assigned yet."));
+        } else {
+            for (Document user : assignedUsers) {
+                String userId = user.getString("userId");
+                String userName = user.getString("userName");
+                Date assignedDate = user.getDate("assignedDate");
+
+                HBox userRow = new HBox(10);
+                userRow.setAlignment(Pos.CENTER_LEFT);
+
+                Label userLabel = new Label("👤 " + userName + " (" + userId + ")");
+                userLabel.setStyle("-fx-font-size: 13px;");
+
+                if (assignedDate != null) {
+                    Label dateLabel = new Label(" - " + dateFormat.format(assignedDate));
+                    dateLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 11px;");
+                    userRow.getChildren().addAll(userLabel, dateLabel);
+                } else {
+                    userRow.getChildren().add(userLabel);
+                }
+
+                Button removeBtn = new Button("✕");
+                removeBtn.setStyle(
+                        "-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 10px; -fx-padding: 2 6;");
+                final String userIdToRemove = userId;
+                removeBtn.setOnAction(e -> {
+                    try {
+                        inventoryService.removeUserFromLicense(getIdString(license), userIdToRemove);
+                        showAlert(Alert.AlertType.INFORMATION, "User removed from license.");
+                        dialog.close();
+                        loadItems();
+                    } catch (Exception ex) {
+                        showAlert(Alert.AlertType.ERROR, "Error: " + ex.getMessage());
+                    }
+                });
+
+                HBox.setHgrow(userLabel, Priority.ALWAYS);
+                userRow.getChildren().add(removeBtn);
+                usersList.getChildren().add(userRow);
+            }
+        }
+
+        // Add user section
+        Separator separator = new Separator();
+
+        Label addLabel = new Label("Add New User:");
+        addLabel.setStyle("-fx-font-weight: bold;");
+
+        GridPane addGrid = new GridPane();
+        addGrid.setHgap(10);
+        addGrid.setVgap(10);
+
+        TextField userIdField = new TextField();
+        userIdField.setPromptText("Entity ID (e.g., STU-001)");
+        TextField userNameField = new TextField();
+        userNameField.setPromptText("Full Name");
+        Button addBtn = styledButton("➕ Add User", "#27ae60");
+
+        addGrid.add(new Label("User ID:"), 0, 0);
+        addGrid.add(userIdField, 1, 0);
+        addGrid.add(new Label("User Name:"), 0, 1);
+        addGrid.add(userNameField, 1, 1);
+        addGrid.add(addBtn, 1, 2);
+
+        Label infoLabel = new Label("⚠️ User ID and Name must match a person in the system.");
+        infoLabel.setStyle("-fx-text-fill: #7f8c8d; -fx-font-size: 11px;");
+
+        addBtn.setOnAction(e -> {
+            String userId = userIdField.getText().trim();
+            String userName = userNameField.getText().trim();
+            if (userId.isEmpty() || userName.isEmpty()) {
+                showAlert(Alert.AlertType.WARNING, "Please provide both User ID and Name.");
+                return;
+            }
+            try {
+                inventoryService.addUserToLicense(getIdString(license), userId, userName);
+                showAlert(Alert.AlertType.INFORMATION, "User added to license!");
+                dialog.close();
+                loadItems();
+            } catch (IllegalArgumentException ex) {
+                showAlert(Alert.AlertType.ERROR, "Validation Error: " + ex.getMessage());
+            } catch (IllegalStateException ex) {
+                showAlert(Alert.AlertType.WARNING, ex.getMessage());
+            } catch (Exception ex) {
+                showAlert(Alert.AlertType.ERROR, "Error: " + ex.getMessage());
+            }
+        });
+
+        content.getChildren().addAll(usersLabel, usersList, separator, addLabel, addGrid, infoLabel);
+
+        ScrollPane scrollPane = new ScrollPane(content);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPrefHeight(350);
+
+        dialog.getDialogPane().setContent(scrollPane);
+        dialog.showAndWait();
+    }
+
     private void handleUnassign() {
         Document selected = table.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert(Alert.AlertType.WARNING, "Please select an item to unassign.");
+            return;
+        }
+
+        String itemType = safeGetString(selected, "itemType");
+
+        if ("License".equals(itemType)) {
+            // For licenses, show the management dialog instead
+            showLicenseUsersDialog(selected);
             return;
         }
 
@@ -454,6 +759,7 @@ public class InventoryController {
         });
     }
 
+    @SuppressWarnings("unchecked")
     private void showDetailDialog(Document doc) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Item Details");
@@ -472,12 +778,25 @@ public class InventoryController {
         grid.add(new Label("Status:"), 0, row);
         grid.add(new Label(safeGetString(doc, "status")), 1, row++);
 
-        grid.add(new Label("Assigned To:"), 0, row);
-        String assigned = safeGetString(doc, "assignedToName");
-        grid.add(new Label(assigned.isEmpty() ? "—" : assigned), 1, row++);
-
-        grid.add(new Label("Department:"), 0, row);
-        grid.add(new Label(safeGetString(doc, "departmentId")), 1, row++);
+        String itemType = safeGetString(doc, "itemType");
+        if ("License".equals(itemType)) {
+            grid.add(new Label("Assigned Users:"), 0, row);
+            List<Document> users = doc.get("assignedUsers", List.class);
+            if (users != null && !users.isEmpty()) {
+                VBox usersBox = new VBox(3);
+                for (Document user : users) {
+                    usersBox.getChildren()
+                            .add(new Label("• " + user.getString("userName") + " (" + user.getString("userId") + ")"));
+                }
+                grid.add(usersBox, 1, row++);
+            } else {
+                grid.add(new Label("—"), 1, row++);
+            }
+        } else {
+            grid.add(new Label("Assigned To:"), 0, row);
+            String assigned = safeGetString(doc, "assignedToName");
+            grid.add(new Label(assigned.isEmpty() ? "—" : assigned), 1, row++);
+        }
 
         Date purchaseDate = safeGetDate(doc, "purchaseDate");
         grid.add(new Label("Purchase Date:"), 0, row);

@@ -13,8 +13,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,6 +29,9 @@ class InventoryServiceTest {
 
     @Mock
     private AuditLogDAO mockAuditLogDAO;
+
+    @Mock
+    private EntityService mockEntityService;
 
     private InventoryService inventoryService;
 
@@ -63,6 +66,10 @@ class InventoryServiceTest {
             java.lang.reflect.Field auditDaoField = InventoryService.class.getDeclaredField("auditLogDAO");
             auditDaoField.setAccessible(true);
             auditDaoField.set(inventoryService, mockAuditLogDAO);
+
+            java.lang.reflect.Field entityServiceField = InventoryService.class.getDeclaredField("entityService");
+            entityServiceField.setAccessible(true);
+            entityServiceField.set(inventoryService, mockEntityService);
         } catch (Exception e) {
             throw new RuntimeException("Failed to inject mock DAOs", e);
         }
@@ -76,13 +83,13 @@ class InventoryServiceTest {
     }
 
     @Test
-    @DisplayName("createItem - should create item successfully with Admin role")
+    @DisplayName("createItem - should create item successfully with Admin role (no department)")
     void testCreateItemSuccess() {
         ObjectId generatedId = new ObjectId();
         when(mockInventoryDAO.insertItem(any(Document.class))).thenReturn(generatedId);
 
         try {
-            String result = inventoryService.createItem("Laptop #001", "Laptop", "IT Dept", "Test notes");
+            String result = inventoryService.createItem("Laptop #001", "Laptop", "Test notes");
 
             assertNotNull(result);
             assertEquals(generatedId.toHexString(), result);
@@ -101,17 +108,23 @@ class InventoryServiceTest {
                         .append("roles", Arrays.asList("Student")));
 
         assertThrows(SecurityException.class, () -> {
-            inventoryService.createItem("Laptop #001", "Laptop", "IT Dept", "Notes");
+            inventoryService.createItem("Laptop #001", "Laptop", "Notes");
         });
     }
 
     @Test
-    @DisplayName("allocateItem - should assign item to user successfully")
+    @DisplayName("allocateItem - should assign item to user after validation")
     void testAllocateItemSuccess() {
         String itemId = "507f1f77bcf86cd799439011";
         Document existingItem = new Document("_id", new ObjectId(itemId))
                 .append("name", "Laptop #001")
+                .append("itemType", "Laptop")
                 .append("status", "Available");
+
+        // Mock user validation - entity exists with matching name
+        Document entityCore = new Document("name", "John Doe");
+        Document entity = new Document("core", entityCore);
+        when(mockEntityService.getEntityById("user-001")).thenReturn(entity);
 
         when(mockInventoryDAO.findById(itemId)).thenReturn(existingItem);
 
@@ -130,13 +143,57 @@ class InventoryServiceTest {
     }
 
     @Test
+    @DisplayName("allocateItem - should throw exception if user not found")
+    void testAllocateItemUserNotFound() {
+        String itemId = "507f1f77bcf86cd799439011";
+        Document existingItem = new Document("_id", new ObjectId(itemId))
+                .append("name", "Laptop #001")
+                .append("itemType", "Laptop")
+                .append("status", "Available");
+
+        when(mockInventoryDAO.findById(itemId)).thenReturn(existingItem);
+        when(mockEntityService.getEntityById("invalid-user")).thenReturn(null);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            inventoryService.allocateItem(itemId, "invalid-user", "John Doe");
+        });
+    }
+
+    @Test
+    @DisplayName("allocateItem - should throw exception if name doesn't match")
+    void testAllocateItemNameMismatch() {
+        String itemId = "507f1f77bcf86cd799439011";
+        Document existingItem = new Document("_id", new ObjectId(itemId))
+                .append("name", "Laptop #001")
+                .append("itemType", "Laptop")
+                .append("status", "Available");
+
+        // Entity has different name
+        Document entityCore = new Document("name", "Jane Smith");
+        Document entity = new Document("core", entityCore);
+        when(mockEntityService.getEntityById("user-001")).thenReturn(entity);
+
+        when(mockInventoryDAO.findById(itemId)).thenReturn(existingItem);
+
+        assertThrows(IllegalArgumentException.class, () -> {
+            inventoryService.allocateItem(itemId, "user-001", "John Doe");
+        });
+    }
+
+    @Test
     @DisplayName("allocateItem - should throw exception if item already assigned")
     void testAllocateItemAlreadyAssigned() {
         String itemId = "507f1f77bcf86cd799439011";
         Document existingItem = new Document("_id", new ObjectId(itemId))
                 .append("name", "Laptop #001")
+                .append("itemType", "Laptop")
                 .append("status", "Assigned")
                 .append("assignedToName", "Jane Smith");
+
+        // Mock user validation
+        Document entityCore = new Document("name", "John Doe");
+        Document entity = new Document("core", entityCore);
+        when(mockEntityService.getEntityById("user-002")).thenReturn(entity);
 
         when(mockInventoryDAO.findById(itemId)).thenReturn(existingItem);
 
@@ -146,11 +203,71 @@ class InventoryServiceTest {
     }
 
     @Test
+    @DisplayName("addUserToLicense - should add multiple users to license")
+    void testAddUserToLicenseSuccess() {
+        String itemId = "507f1f77bcf86cd799439011";
+        Document existingItem = new Document("_id", new ObjectId(itemId))
+                .append("name", "Office License #001")
+                .append("itemType", "License")
+                .append("status", "Available")
+                .append("assignedUsers", new ArrayList<Document>());
+
+        // Mock user validation
+        Document entityCore = new Document("name", "John Doe");
+        Document entity = new Document("core", entityCore);
+        when(mockEntityService.getEntityById("user-001")).thenReturn(entity);
+
+        when(mockInventoryDAO.findById(itemId)).thenReturn(existingItem);
+
+        UpdateResult mockResult = mock(UpdateResult.class);
+        when(mockResult.getModifiedCount()).thenReturn(1L);
+        when(mockInventoryDAO.updateItem(eq(itemId), any(Document.class))).thenReturn(mockResult);
+
+        try {
+            boolean result = inventoryService.addUserToLicense(itemId, "user-001", "John Doe");
+
+            assertTrue(result);
+            verify(mockInventoryDAO, times(1)).updateItem(eq(itemId), any(Document.class));
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Test
+    @DisplayName("removeUserFromLicense - should remove specific user from license")
+    void testRemoveUserFromLicenseSuccess() {
+        String itemId = "507f1f77bcf86cd799439011";
+        List<Document> assignedUsers = new ArrayList<>();
+        assignedUsers.add(new Document("userId", "user-001").append("userName", "John Doe"));
+        assignedUsers.add(new Document("userId", "user-002").append("userName", "Jane Smith"));
+
+        Document existingItem = new Document("_id", new ObjectId(itemId))
+                .append("name", "Office License #001")
+                .append("itemType", "License")
+                .append("status", "Assigned")
+                .append("assignedUsers", assignedUsers);
+
+        when(mockInventoryDAO.findById(itemId)).thenReturn(existingItem);
+
+        UpdateResult mockResult = mock(UpdateResult.class);
+        when(mockResult.getModifiedCount()).thenReturn(1L);
+        when(mockInventoryDAO.updateItem(eq(itemId), any(Document.class))).thenReturn(mockResult);
+
+        try {
+            boolean result = inventoryService.removeUserFromLicense(itemId, "user-001");
+
+            assertTrue(result);
+            verify(mockInventoryDAO, times(1)).updateItem(eq(itemId), any(Document.class));
+        } catch (Exception ignored) {
+        }
+    }
+
+    @Test
     @DisplayName("deallocateItem - should unassign item successfully")
     void testDeallocateItemSuccess() {
         String itemId = "507f1f77bcf86cd799439011";
         Document existingItem = new Document("_id", new ObjectId(itemId))
                 .append("name", "Laptop #001")
+                .append("itemType", "Laptop")
                 .append("status", "Assigned")
                 .append("assignedToName", "John Doe");
 
